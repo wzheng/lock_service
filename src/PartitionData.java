@@ -14,4 +14,7 @@ public class PartitionData {
 	this.servers.add(server);
     }
 
+    public int getPartitionNumber() {
+	return this.partitionNumber;
+    }
 }
