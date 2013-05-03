@@ -3,6 +3,10 @@ import java.io.*;
 
 import com.thetransactioncompany.jsonrpc2.*;
 
+/**
+ *  MainApp is responsible for all of the initialization for this database
+ */
+
 public class MainApp {
 
     public static void main(String[] args) {
