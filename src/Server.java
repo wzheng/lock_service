@@ -7,32 +7,33 @@ import java.io.*;
 
 public class Server {
 
-    public num ReconfigState {NONE, PREPARE, ACCEPT, CHANGE};
-
     private ServerAddress address;
     private LockTable lockTable;
     private HashMap<Integer, PartitionData> partitionTable;
     private Data dataStore;
-    private int port2;
+    private ArrayList<ServerAddress> serverList;
 
     // transactions
     private int numThreads;
+    private HashMap<TransactionId, CommunicationQ> activeThreads;
 
     // reconfiguration
     private boolean isConfiguring;
     private PartitionTable partitionTable;
     private HashMap<Integer, Integer> AF;     // affinity factors
-    private ReconfigState reconfigState;
+    private ReconfigState reconfigState;      // current state of reconfiguration
+    private boolean isMaster;
 
     // static variables
     private static int MAX_THREADS = 2;
 
-    public Server(String name, int port1, int port2, int numServers, HashMap<Integer, PartitionData> config) {
-	this.address = new ServerAddress(name, port1);
+    public Server(ServerAddress address, HashMap<Integer, PartitionData> config, boolean isMaster, ArrayList<ServerAddress> servers) {
+	this.address = address;
 	lockTable = new LockTable();
 	this.rpc = new RPC(name, port1);
 	this.partitionTable = config;
 	this.dataStore = new Data();
+	this.servers = 
 
 	Iterator<Integer> itr = config.getPartitions();
 	while (itr.hasNext()) {
@@ -40,82 +41,42 @@ public class Server {
 	    dataStore.addNewPartition(i);
 	}
 
-	this.port2 = port2;
 	this.isConfiguring = false;
 
 	numThreads = 0;
 	
 	AF = new HashMap<Integer, Integer>();
+	reconfigState = ReconfigState.NONE;
+	this.isMaster = isMaster;
     }
 
     public PartitionTable getPartitionTable() {
-	synchronized(PartitionTable) {
-	    return partitionTable;
-	}
+	return partitionTable;
     }
 
-    public int getServerPort() {
-	return address.getPort();
-    }
-
-    public int getPort2() {
-	return port2;
+    public static int hashKey(String key) {
+	return (key.hashCode())%(serverList.size());
     }
     
-    public void startTransaction() {
-	// acquire all locks necessary
+
+    public HashMap<Integer, Integer> getAF() {
+	return AF;
     }
 
-    public void abort() {
-	// atomically abort the transaction, release all locks held by the txn
-	
+    public ReconfigState getReconfigState() {
+	return reconfigState;
     }
 
-    public void commit() {
-	// atomically commit the transaction, release all locks held by the txn
-	
+    public boolean isMaster() {
+	return this.isMaster;
     }
 
-    public void get(String key) {
-	
-    }
-
-    public void put(String key, String value) {
-	
-    }
-
-    // Reconfiguration
-    public void configure(JSONRPC2Request request) {
-	if (req == null) {
-	    if 
-	    
-	    synchronized(this.AF) {
-
-		ArrayList<Integer> partitions = new ArrayList<Integer>();
-
-		Iterator itr = this.AF.entrySet().iterator();
-		while (itr.hasNext()) {
-		    Map.Entry pairs = (Map.Entry) itr.next();
-		    Integer partitionNum = pairs.getKey();
-		    Integer af = pairs.getValue();
-		    
-		    if (af.intValue() > THRESHOLD) {
-			partitions.add(af);
-		    }
-		}
-		
-		// if there are partitions to be 
-		if (!partitions.isEmpty()) {
-		    
-		}
-	    }
-	} else {
-	    // process the messages
-	    
-	}
+    public ServerAddress getServerAddress() {
+	return this.address;
     }
 
     // check for incoming requests
+    // TODO: currently we have this main thread handle all of the 
     public void run() {
 	
 	while (true) {
@@ -133,29 +94,8 @@ public class Server {
 		System.err.println("ERROR: " + e.getMessage());
 	    }
 
-	    switch (method) {
-		
-	    case "reconfigure":
-		this.reconfigure(reqIn);
-		break;
-
-	    case "get": 
-		break;
-
-	    case "put": 
-		break;
-
-	    case "startTransaction": 
-		break;
-
-	    case "commit": 
-		break;
-
-	    case "abort": 
-		break;
-
-	    }
-
+	    
+	    
 	}
 
     }
