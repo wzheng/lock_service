@@ -51,5 +51,4 @@ public class PartitionTable {
     public Iterator getPartitions() {
 	return table.keySet().iterator();
     }
-    
 }

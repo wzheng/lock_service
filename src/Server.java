@@ -7,14 +7,25 @@ import java.io.*;
 
 public class Server {
 
+    public num ReconfigState {NONE, PREPARE, ACCEPT, CHANGE};
+
     private ServerAddress address;
     private LockTable lockTable;
     private HashMap<Integer, PartitionData> partitionTable;
     private Data dataStore;
     private int port2;
 
-    // for reconfiguration
+    // transactions
+    private int numThreads;
+
+    // reconfiguration
     private boolean isConfiguring;
+    private PartitionTable partitionTable;
+    private HashMap<Integer, Integer> AF;     // affinity factors
+    private ReconfigState reconfigState;
+
+    // static variables
+    private static int MAX_THREADS = 2;
 
     public Server(String name, int port1, int port2, int numServers, HashMap<Integer, PartitionData> config) {
 	this.address = new ServerAddress(name, port1);
@@ -31,6 +42,16 @@ public class Server {
 
 	this.port2 = port2;
 	this.isConfiguring = false;
+
+	numThreads = 0;
+	
+	AF = new HashMap<Integer, Integer>();
+    }
+
+    public PartitionTable getPartitionTable() {
+	synchronized(PartitionTable) {
+	    return partitionTable;
+	}
     }
 
     public int getServerPort() {
@@ -55,28 +76,82 @@ public class Server {
 	
     }
 
+    public void get(String key) {
+	
+    }
+
+    public void put(String key, String value) {
+	
+    }
+
+    // Reconfiguration
+    public void configure(JSONRPC2Request request) {
+	if (req == null) {
+	    if 
+	    
+	    synchronized(this.AF) {
+
+		ArrayList<Integer> partitions = new ArrayList<Integer>();
+
+		Iterator itr = this.AF.entrySet().iterator();
+		while (itr.hasNext()) {
+		    Map.Entry pairs = (Map.Entry) itr.next();
+		    Integer partitionNum = pairs.getKey();
+		    Integer af = pairs.getValue();
+		    
+		    if (af.intValue() > THRESHOLD) {
+			partitions.add(af);
+		    }
+		}
+		
+		// if there are partitions to be 
+		if (!partitions.isEmpty()) {
+		    
+		}
+	    }
+	} else {
+	    // process the messages
+	    
+	}
+    }
+
     // check for incoming requests
     public void run() {
-	(new Thread(new PartitionUpdater(this, port2))).run();
 	
 	while (true) {
 
-	    JSONRPC2Request reqIn = rpc.receive();
-	    String method = reqIn.getMethod();
+	    String str = queue.get();
+	    if (str.equals("")) {
+		Thread.sleep(0.5);
+		continue;
+	    }
+	    
+	    JSONRPC2Request reqIn = null;
+	    try {
+		reqIn = JSONRPC2Request.parse(jsonString);
+	    } catch (JSONRPC2ParseException e) {
+		System.err.println("ERROR: " + e.getMessage());
+	    }
 
 	    switch (method) {
 		
-	    case "reconfigure": 
-		synchronized(this.isConfiguring) {
-		    if (!this.isConfiguring) {
-			this.isConfiguring = true;
-			rpc.send(port2, reqIn);
-		    }
-		}
+	    case "reconfigure":
+		this.reconfigure(reqIn);
 		break;
 
-	    case "lock": 
-		this.lock();
+	    case "get": 
+		break;
+
+	    case "put": 
+		break;
+
+	    case "startTransaction": 
+		break;
+
+	    case "commit": 
+		break;
+
+	    case "abort": 
 		break;
 
 	    }

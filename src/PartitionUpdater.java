@@ -8,22 +8,26 @@ import java.util.*;
 public class PartitionUpdater implements Runnable {
 
     private Server server;
-    private int port;
-    private RPC rpc;
+    private CommunicationQ queue;
     
-    public PartitionUpdater(Server server, int port) {
+    public PartitionUpdater(Server server, CommunicationQ queue) {
 	this.server = server;
-	this.port = port;
-	rpc = new RPC("", port);
+	this.queue = queue;
     }
     
-    while (true) {
-	// check for partition data
-	JSONRPC2Request reqIn = rpc.receive();
-	
-	
-	
-	Thread.sleep(1);
+    public void run() {
+
+	while (true) {
+	    String str = queue.get();
+	    if (str.equals("")) {
+		Thread.sleep(0.5);
+		continue;
+	    }
+	    
+	    
+	    
+	}
+
     }
 
 }

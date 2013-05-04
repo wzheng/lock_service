@@ -61,6 +61,7 @@ public class RPC {
 	this.send(port, rpcObject.toString());	
     }
 
+    // this call blocks
     public JSONRPC2Request receive() {
 	String request = in.readLine();
 	JSONRPC2Request reqIn = null;
