@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.*;
 import java.util.*;
 
 import com.thetransactioncompany.jsonrpc2.*;
@@ -25,7 +26,7 @@ public class RPC {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         } catch (UnknownHostException e) {
-            System.err.println("Server " + name + " initialize failed");
+            System.err.println("Server " + serverName + " initialize failed");
             System.exit(1);
         } catch (IOException e) {
             System.err.println("Couldn't get I/O for the connection to server " + name);
@@ -51,27 +52,26 @@ public class RPC {
 	out.println(message);
     }
     
-    public static void send(String serverName, int port, String methodName, String uid, Object args) {
-	JSONRPC2Request reqOut = new JSONRPC2Request(methodName, args, uid);
-	String jsonString = reqOut.toString();
-	this.send(port, jsonString);
+    public static void send(String serverName, int port, String methodName, String uid, List<Object> args) {
+		JSONRPC2Request reqOut = new JSONRPC2Request(methodName, args, uid);
+		String jsonString = reqOut.toString();
+		this.send(port, jsonString);
     }
 
     public static void send(int port, JSONRPC2Request rpcObject) {
-	this.send(port, rpcObject.toString());	
+    	this.send(port, rpcObject.toString());	
     }
 
     // this call blocks
     public JSONRPC2Request receive() {
-	String request = in.readLine();
-	JSONRPC2Request reqIn = null;
-	
-	try {
-	    reqIn = JSONRPC2Request.parse(jsonString);
-	    return reqIn;
-	} catch (JSONRPC2ParseException e) {
-	    System.err.println(e.getMessage());
-	}
+		String request = in.readLine();
+		JSONRPC2Request reqIn = null;
+		try {
+		    reqIn = JSONRPC2Request.parse(jsonString);
+		    return reqIn;
+		} catch (JSONRPC2ParseException e) {
+		    System.err.println(e.getMessage());
+		}
     }
     
 }

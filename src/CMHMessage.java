@@ -36,6 +36,9 @@ public class CMHMessage {
 		return req.toString();
 	}
 	
+	/**
+	 * Sends Chandy-Misra-Haas message
+	 */
 	public void sendMessage(){
 		
 	}

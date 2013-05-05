@@ -20,10 +20,10 @@ public class Worker implements Runnable {
     private HashSet<String> writeLocked;
 
     public Worker(Server server, CommunicationQ queue) {
-	this.server = server;
-	this.queue = queue;
-	txn = null;
-	readSet = new HashMap<String, String>();
+    	this.server = server;
+    	this.queue = queue;
+    	txn = null;
+    	readSet = new HashMap<String, String>();
     }
 
     public void startTransaction(RPCRequest rpcReq) {
@@ -33,22 +33,22 @@ public class Worker implements Runnable {
 	    txn = txnContext;
 	}
 
-	TransactionID tid = txn.tid;
+	TransactionId tid = txn.tid;
 
-	HashSet<Integer> contactPartitions = new ArrayList<Integer>();
+	ArrayList<Integer> contactPartitions = new ArrayList<Integer>();
 
-	Iterator write_set_it = txnContext.write_set.keySet().iterator();
-	Iterator read_set_it = txnContext.read_set.keySet().iterator();
+	Iterator<String> write_set_it = txnContext.write_set.keySet().iterator();
+	Iterator<String> read_set_it = txnContext.read_set.keySet().iterator();
 
 	while (write_set_it.hasNext()) {
 	    String key = (String) write_set_it.next();
 	    int serverNum = this.server.hashKey(key);
 	    if (serverNum == this.server.getServerNumber()) {
-		this.server.lockW(key);
-		writeLocked.add(key);
-		writeSet.put(key, value);
+	    	this.server.lockW(key);
+	    	writeLocked.add(key);
+	    	writeSet.put(key, value);
 	    } else {
-		contactPartitions.add(new Integer(serverNum));
+	    	contactPartitions.add(new Integer(serverNum));
 	    }
 	}
 
@@ -56,12 +56,12 @@ public class Worker implements Runnable {
 	    String key = (String) read_set_it.next();
 	    int serverNum = this.server.hashKey(key);
 	    if (serverNum == this.server.getServerNumber()) {
-		this.server.lockR(key);
-		String value = this.server.get(key);
-		readSet.put(key, value);
-		readLocked.add(key);
+	    	this.server.lockR(key);
+	    	String value = this.server.get(key);
+	    	readSet.put(key, value);
+	    	readLocked.add(key);
 	    } else {
-		contactPartitions.add(new Integer(serverNum));
+	    	contactPartitions.add(new Integer(serverNum));
 	    }
 	}
 

@@ -5,8 +5,8 @@ public class CommunicationQ {
     
     private ArrayList<Object> queue;
 
-    public CommunicationQ {
-	queue = new ArrayList<Object>();
+    public CommunicationQ() {
+    	queue = new ArrayList<Object>();
     }
 
     public synchronized Object get() {
@@ -20,7 +20,7 @@ public class CommunicationQ {
     }
 
     public synchronized void put(Object item) {
-	queue.add(item);
+    	queue.add(item);
     }
     
 }

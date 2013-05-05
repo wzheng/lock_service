@@ -9,7 +9,7 @@ public class RPCRequest {
     public RPCRequest(Map<String, Object> rpc) {
 	
 	int port = (int) rpc.get("Reply Port");
-	int name = (String) rpc.get("Reply Name");
+	String name = (String) rpc.get("Reply Name");
 	int number = (int) rpc.get("Reply Number");
 
 	replyAddress = new ServerAddress(number, name, port);

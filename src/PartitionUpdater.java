@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import com.thetransactioncompany.jsonrpc2.*;
 
 /**
  * This class takes care of initiating partition transfers
@@ -32,7 +33,7 @@ public class PartitionUpdater implements Runnable {
     public void configure(JSONRPC2Request request) {
 	
 	switch(call) {
-	case "": 
+		case "": 
 	}
 	
 	//synchronized(this.AF) {
@@ -59,20 +60,20 @@ public class PartitionUpdater implements Runnable {
 
 	    // v.1. only the master can construct graphs and perform re-partition
 	    if (this.isMaster) {
-		this.configureMaster();
+	    	this.configureMaster();
 	    }
 
-	    String str = queue.get();
+	    String str = (String) queue.get();
 	    if (str.equals("")) {
-		Thread.sleep(0.5);
-		continue;
+	    	Thread.sleep((long)0.5);
+	    	continue;
 	    }
 
 	    JSONRPC2Request reqIn = null;
 	    try {
-		reqIn = JSONRPC2Request.parse(jsonString);
+	    	reqIn = JSONRPC2Request.parse(jsonString);
 	    } catch (JSONRPC2ParseException e) {
-		System.err.println("PartitionUpdater ERROR: " + e.getMessage());
+	    	System.err.println("PartitionUpdater ERROR: " + e.getMessage());
 	    }
 
 	    this.configure(reqIn);

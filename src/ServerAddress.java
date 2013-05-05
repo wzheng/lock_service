@@ -13,7 +13,7 @@ public class ServerAddress {
     }
 
     public String getServerName() {
-	return this.name;
+	return this.serverName;
     }
 
     public int getPort() {

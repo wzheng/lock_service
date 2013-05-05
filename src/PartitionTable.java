@@ -34,21 +34,21 @@ public class PartitionTable {
 	vv = new VersionVector(size);
     }
 
-    public addPartition(int pNum, ServerAddress server) {
-	Integer num = new Integer(pNum);
-	
-	if (table.contains(num)) {
-	    PartitionData pd = table.get(num);
-	    pd.addServer(server);
-	    table.put(num, pd);
-	} else {
-	    PartitionData pd = new PartitionData(pNum);
-	    pd.addServer(server);
-	    table.put(num, pd);
-	}
+    public void addPartition(int pNum, ServerAddress server) {
+		Integer num = new Integer(pNum);
+		
+		if (table.containsKey(num)) {
+		    PartitionData pd = table.get(num);
+		    pd.addServer(server);
+		    table.put(num, pd);
+		} else {
+		    PartitionData pd = new PartitionData(pNum);
+		    pd.addServer(server);
+		    table.put(num, pd);
+		}
     }
 
-    public Iterator getPartitions() {
-	return table.keySet().iterator();
+    public Iterator<Integer> getPartitions() {
+    	return table.keySet().iterator();
     }
 }

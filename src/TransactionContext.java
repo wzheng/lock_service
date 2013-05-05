@@ -6,9 +6,9 @@ public class TransactionContext {
     public TransactionId tid;
     public boolean isRW;
     public HashMap<String, String> write_set;
-    public HashSet<String, String > read_set;
+    public HashMap<String, String> read_set;
 
-    public void parseJSON(Map<String, Object> json) {
+    public void parseJSON(Map<String, Object> params) {
 
 	String serverName = (String) params.get("ServerName");
 	int serverNumber = (int) params.get("ServerNumber");
@@ -19,7 +19,7 @@ public class TransactionContext {
 	this.tid = new TransactionId(new ServerAddress(serverNumber, serverName, serverPort), tidNum);
 	this.isRW = (boolean) params.get("RW");
 	this.write_set = (HashMap<String, String>) params.get("Write Set");
-	this.read_set = (HashSet<String, String>) params.get("Read Set");
+	this.read_set = (HashMap<String, String>) params.get("Read Set");
 		
     }
 
@@ -30,7 +30,7 @@ public class TransactionContext {
 
 	ret.put("ServerName", sa.getServerName());
 	ret.put("ServerNumber", sa.getServerNumber());
-	ret.put("ServerPort", sa.getServerPort());
+	ret.put("ServerPort", sa.getPort());
 
 	ret.put("TID", tid.getTID());
 
