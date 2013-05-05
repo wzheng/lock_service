@@ -3,23 +3,23 @@ import java.util.*;
 
 public class CommunicationQ {
     
-    private ArrayList<String> queue;
+    private ArrayList<Object> queue;
 
     public CommunicationQ {
-	queue = new ArrayList<String>();
+	queue = new ArrayList<Object>();
     }
 
-    public synchronized String get() {
+    public synchronized Object get() {
 	if (queue.isEmpty()) {
 	    return "";
 	} else {
-	    String ret = queue.get(0);
+	    Object ret = queue.get(0);
 	    queue.remove(0);
 	    return ret;
 	}
     }
 
-    public synchronized void put(String item) {
+    public synchronized void put(Object item) {
 	queue.add(item);
     }
     

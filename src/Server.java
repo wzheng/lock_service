@@ -11,7 +11,7 @@ public class Server {
     private LockTable lockTable;
     private HashMap<Integer, PartitionData> partitionTable;
     private Data dataStore;
-    private ArrayList<ServerAddress> serverList;
+    private HashMap<Integer, ServerAddress> serverList;
 
     // transactions
     private int numThreads;
@@ -33,7 +33,12 @@ public class Server {
 	this.rpc = new RPC(name, port1);
 	this.partitionTable = config;
 	this.dataStore = new Data();
-	this.servers = 
+
+	Iterator servers_it = servers.iterator();
+	while (servers_it.hasNext()) {
+	    ServerAddress sa = (ServerAddress) servers_it.next();
+	    serverList.put(sa.getServerNumber(), sa);
+	}
 
 	Iterator<Integer> itr = config.getPartitions();
 	while (itr.hasNext()) {
@@ -54,10 +59,10 @@ public class Server {
 	return partitionTable;
     }
 
+    // For a certain key, returns the partition that key belongs to
     public static int hashKey(String key) {
 	return (key.hashCode())%(serverList.size());
     }
-    
 
     public HashMap<Integer, Integer> getAF() {
 	return AF;
@@ -71,12 +76,43 @@ public class Server {
 	return this.isMaster;
     }
 
-    public ServerAddress getServerAddress() {
+    public ServerAddress getAddress() {
 	return this.address;
     }
 
-    // check for incoming requests
-    // TODO: currently we have this main thread handle all of the 
+    public ServerAddress getServerAddress(int serverNum) {
+	return this.serverList.get(new Integer(serverNum));
+    }
+
+    public int getServerNumber() {
+	return this.address.getServerNumber();
+    }
+
+    public void lockW(String key) {
+	this.lockTable.lockW(key);
+    }
+
+    public void lockR(String key) {
+	this.lockTable.lockR(key);
+    }
+
+    public void unlockW(String key) {
+	this.lockTable.unlockW(key);
+    }
+
+    public void unlockR(String key) {
+	this.lockTable.unlockR(key);
+    }
+
+    public get(String key) {
+	return this.dataStore.get(key);
+    }
+
+    public put(String key, String value) {
+	return this.dataStore.put(key, value);
+    }
+
+    // check for incoming requests, spawn new worker threads as necessary
     public void run() {
 	
 	while (true) {
@@ -94,7 +130,33 @@ public class Server {
 		System.err.println("ERROR: " + e.getMessage());
 	    }
 
-	    
+	    // TODO: duplicate messages?
+
+	    String method = reqIn.getMethod();
+	    Map<String, Object> params = reqIn.getNamedParams();
+
+	    if (method.equals("start")) {
+		RPCRequest rpcReq = new RPCRequest(params);
+		
+		TransactionContext t = new TransactionContext();
+		Transaction.parseJSON(params);
+		
+		CommunicationQ q = new CommunicationQ();
+		this.activeWorkers.put(tid, q);
+		(new Worker(this, q)).run();
+
+		rpcReq.addArgs(t);
+		q.put(rpcReq);
+
+	    } else if (method.equals("abort")) {
+		
+	    } else if (method.equals("commit")) {
+		
+	    } else if (method.equals("start-reply")) {
+		RPCRequest rpcReq = new RPCRequest(params);
+		rpcReq.addArgs(params.get("Read Set"));
+		this.activeWorkers.get(new TransactionId(this.address, params.get("TID")).put(rpcReq);
+	    }
 	    
 	}
 
