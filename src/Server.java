@@ -33,31 +33,31 @@ public class Server {
     private static int MAX_THREADS = 2;
 
     public Server(ServerAddress address, HashMap<Integer, PartitionTable.PartitionData> config, boolean isMaster, ArrayList<ServerAddress> servers) {
-		this.address = address;
-		lockTable = new LockTable();
-		this.rpc = new RPC(name, port1);
-		this.partitionTable = config;
-		this.dataStore = new Data();
+	this.address = address;
+	lockTable = new LockTable();
+	this.rpc = new RPC(name, port1);
+	this.partitionTable = config;
+	this.dataStore = new Data();
 	
-		Iterator servers_it = servers.iterator();
-		while (servers_it.hasNext()) {
-		    ServerAddress sa = (ServerAddress) servers_it.next();
-		    serverList.put(sa.getServerNumber(), sa);
-		}
+	Iterator servers_it = servers.iterator();
+	while (servers_it.hasNext()) {
+	    ServerAddress sa = (ServerAddress) servers_it.next();
+	    serverList.put(sa.getServerNumber(), sa);
+	}
 	
-		Iterator<Integer> itr = config.getPartitions();
-		while (itr.hasNext()) {
-		    Integer i = (Integer)itr.next();
-		    dataStore.addNewPartition(i);
-		}
+	Iterator<Integer> itr = config.getPartitions();
+	while (itr.hasNext()) {
+	    Integer i = (Integer)itr.next();
+	    dataStore.addNewPartition(i);
+	}
 	
-		this.isConfiguring = false;
+	this.isConfiguring = false;
 	
-		numThreads = 0;
+	numThreads = 0;
 		
-		AF = new HashMap<Integer, Integer>();
-		reconfigState = ReconfigState.NONE;
-		this.isMaster = isMaster;
+	AF = new HashMap<Integer, Integer>();
+	reconfigState = ReconfigState.NONE;
+	this.isMaster = isMaster;
     }
 
     public PartitionTable getPartitionTable() {
@@ -155,16 +155,19 @@ public class Server {
 
 	    } else if (method.equals("abort")) {
 		
-	    } else if (method.equals("commit")) {
+		//TransactionId tid = ??;
+		this.activeWorkers.get().put(rpcReq);
 		
+	    } else if (method.equals("commit")) {
+		//TranscationId tid = ??;
+		this.activeWorkers.get(new TransactionId(this.address, params.get("TID"))).put(rpcReq);
+	
 	    } else if (method.equals("start-reply")) {
 	    	RPCRequest rpcReq = new RPCRequest(params);
 	    	rpcReq.addArgs(params.get("Read Set"));
-	    	this.activeWorkers.get(new TransactionId(this.address, params.get("TID")).put(rpcReq);
+	    	this.activeWorkers.get(new TransactionId(this.address, params.get("TID"))).put(rpcReq);
 	    }
-	    
 	}
-
     }
 }
 

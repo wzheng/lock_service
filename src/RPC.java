@@ -52,10 +52,10 @@ public class RPC {
 	out.println(message);
     }
     
-    public static void send(String serverName, int port, String methodName, String uid, List<Object> args) {
+    public static void send(ServerAddress sa, String methodName, String uid, List<Object> args) {
 		JSONRPC2Request reqOut = new JSONRPC2Request(methodName, args, uid);
 		String jsonString = reqOut.toString();
-		this.send(port, jsonString);
+		this.send(sa.getServerPort(), jsonString);
     }
 
     public static void send(int port, JSONRPC2Request rpcObject) {
