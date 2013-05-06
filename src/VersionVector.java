@@ -10,15 +10,15 @@ public class VersionVector {
     private int[] vv;
 
     public VersionVector(int size) {
-	vv = new int[size];
+        vv = new int[size];
 
-	for (int i = 0; i < size; i++) {
-	    vv[i] = 0;
-	}
+        for (int i = 0; i < size; i++) {
+            vv[i] = 0;
+        }
     }
 
     public void increment(int pos) {
-	vv[pos] = vv[pos] + 1;
+        vv[pos] = vv[pos] + 1;
     }
 
 }

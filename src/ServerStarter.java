@@ -10,28 +10,29 @@ public class ServerStarter {
 
     private CommunicationQ serverQueue;
     private CommunicationQ puQueue;
-    
-    public ServerStarter(String name, int port, int numServers, HashMap<Integer, PartitionData> config) {
-    	serverQueue = new CommunicationQ();
-    	puQueue = new CommunicationQ();
-    	server = new Server(name, numServers, config);
-    	pu = new PartitionUpdater(server, serverQueue);
+
+    public ServerStarter(String name, int port, int numServers,
+            HashMap<Integer, PartitionData> config) {
+        serverQueue = new CommunicationQ();
+        puQueue = new CommunicationQ();
+        server = new Server(name, numServers, config);
+        pu = new PartitionUpdater(server, serverQueue);
     }
 
     public void run() {
-	server.run();
-	pu.run();
+        server.run();
+        pu.run();
 
-	while (true) {
+        while (true) {
 
-	    JSONRPC2Request req = rpc.receive();
-	    if (req.getMethod() == "reconfigure") {
-	    	puQueue.put(req);
-	    } else {
-	    	serverQueue.put(req);
-	    }
-	    
-	}
+            JSONRPC2Request req = rpc.receive();
+            if (req.getMethod() == "reconfigure") {
+                puQueue.put(req);
+            } else {
+                serverQueue.put(req);
+            }
+
+        }
     }
 
 }
