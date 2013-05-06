@@ -27,7 +27,7 @@ public class Server {
     private HashMap<Integer, Integer> AF;     // affinity factors
     private ReconfigState reconfigState;      // current state of reconfiguration
     private boolean isMaster;
-	private RPC rpc;
+    private RPC rpc;
 
     // static variables
     private static int MAX_THREADS = 2;
@@ -139,33 +139,19 @@ public class Server {
 
 	    String method = reqIn.getMethod();
 	    Map<String, Object> params = reqIn.getNamedParams();
+	    RPCRequest rpcReq = new RPCRequest(method, params);
 
 	    if (method.equals("start")) {
-	    	RPCRequest rpcReq = new RPCRequest(params);
-		
-	    	TransactionContext t = new TransactionContext();
-	    	Transaction.parseJSON(params);
 		
 	    	CommunicationQ q = new CommunicationQ();
-	    	this.activeWorkers.put(tid, q);
+	    	this.activeWorkers.put(rpcReq.tid, q);
 	    	(new Worker(this, q)).run();
 
 	    	rpcReq.addArgs(t);
 	    	q.put(rpcReq);
 
-	    } else if (method.equals("abort")) {
-		
-		//TransactionId tid = ??;
-		this.activeWorkers.get().put(rpcReq);
-		
-	    } else if (method.equals("commit")) {
-		//TranscationId tid = ??;
-		this.activeWorkers.get(new TransactionId(this.address, params.get("TID"))).put(rpcReq);
-	
-	    } else if (method.equals("start-reply")) {
-	    	RPCRequest rpcReq = new RPCRequest(params);
-	    	rpcReq.addArgs(params.get("Read Set"));
-	    	this.activeWorkers.get(new TransactionId(this.address, params.get("TID"))).put(rpcReq);
+	    } else {
+	    	this.activeWorkers.get(rpcReq.tid).put(rpcReq);
 	    }
 	}
     }

@@ -37,13 +37,13 @@ public class Worker implements Runnable {
     }
 
     public void startTransaction(RPCRequest rpcReq) {
-	TransactionContext txnContext = (TransactionContext) rpcReq.getArgs();
+	TransactionContext txnContext = new TransactionContext(rpcReq.args);
 
 	if (txn == null) {
 	    txn = txnContext;
 	}
 
-	TransactionId tid = txn.tid;
+	TransactionId tid = rpcReq.tid;
 
 	ArrayList<Integer> contactPartitions = new ArrayList<Integer>();
 
@@ -95,29 +95,25 @@ public class Worker implements Runnable {
 	    Iterator it = contactPartitions.iterator();
 
 	    while (it.hasNext()) {
+		
 		ServerAddress sa = this.server.getServerAddress((int) it.next());
 		HashMap<String, Object> args = txnContext.toJSONObject();
-
 		ServerAddress thisSA = this.server.getAddress();
-		args.put("Reply Port", thisSA.getServerPort());
-		args.put("Reply Name", thisSA.getServerName());
-		args.put("Reply Number", thisSA.getServerNumber());
-		
+
 		// TODO: what if packets are dropped?
-		RPC.send(sa,"start", "001", args);
+		RPCRequest newReq = new RPCRequest("start", sa, tid, args);
+		RPC.send(sa,"start", "001", newReq.toJSONObject());
 	    }
 
 	} else {
 	    // reply to original server with read-set information
+	    ServerAddress thisSA = this.server.getAddress();
 	    HashMap<String, Object> args = new HashMap<String, Object>();
-	    args.put("Reply Port", thisSA.getServerPort());
-	    args.put("Reply Name", thisSA.getServerName());
-	    args.put("Reply Number", thisSA.getServerNumber());
 	    args.put("State", "OK");
 	    args.put("Read Set", readSet);
-	    args.put("TID", tid.getTID());
+	    RPCRequest newReq = new RPCRequest("start-reply", sa, tid, args);
 
-	    RPC.send(rpcReq.replyAddress, "start-reply", "001", args);
+	    RPC.send(rpcReq.replyAddress, "start-reply", "001", newReq.toJSONObject());
 	    readSet.clear();
 	}
 	
@@ -146,12 +142,10 @@ public class Worker implements Runnable {
 		
 		HashMap<String, Object> args = new HashMap<String, Object>();
 		ServerAddress thisSA = this.server.getAddress();
-		args.put("Reply Port", thisSA.getServerPort());
-		args.put("Reply Name", thisSA.getServerName());
-		args.put("Reply Number", thisSA.getServerNumber());
-		
+		RPCRequest newReq = new RPCRequest("abort", sa, rpcReq.tid, args);
+
 		ServerAddress sentServer = (ServerAddress) it.next();
-		RPC.send(sentServer, "abort", "001", args);
+		RPC.send(sentServer, "abort", "001", newReq.toJSONObject());
 		waitServers.add(sentServer);
 	    }
 
@@ -175,12 +169,10 @@ public class Worker implements Runnable {
 	    // sends "ack" back to original server
 	    HashMap<String, Object> args = new HashMap<String, Object>();
 	    ServerAddress thisSA = this.server.getAddress();
-	    args.put("Reply Port", thisSA.getServerPort());
-	    args.put("Reply Name", thisSA.getServerName());
-	    args.put("Reply Number", thisSA.getServerNumber());
-		
 	    args.put("State", true);
-	    RPC.send(rpcReq.getReplyAddress(), "abort-reply", "001", args);
+
+	    RPCRequest newReq = new RPCRequest("abort-reply", sa, rpcReq.tid, args);
+	    RPC.send(rpcReq.getReplyAddress(), "abort-reply", "001", newReq.toJSONObject());
 	}	
     }
 
@@ -216,12 +208,10 @@ public class Worker implements Runnable {
 		
 		HashMap<String, Object> args = new HashMap<String, Object>();
 		ServerAddress thisSA = this.server.getAddress();
-		args.put("Reply Port", thisSA.getServerPort());
-		args.put("Reply Name", thisSA.getServerName());
-		args.put("Reply Number", thisSA.getServerNumber());
+		RPCRequest newReq = new RPCRequest("commit", sa, rpcReq.tid, args);
 		
 		ServerAddress sentServer = (ServerAddress) it.next();
-		RPC.send(sentServer, "commit", "001", args);
+		RPC.send(sentServer, "commit", "001", newReq.toJSONObject());
 		waitServers.add(sentServer);
 	    }
 
@@ -245,12 +235,11 @@ public class Worker implements Runnable {
 	    // sends "ack" back to original server
 	    HashMap<String, Object> args = new HashMap<String, Object>();
 	    ServerAddress thisSA = this.server.getAddress();
-	    args.put("Reply Port", thisSA.getServerPort());
-	    args.put("Reply Name", thisSA.getServerName());
-	    args.put("Reply Number", thisSA.getServerNumber());
-		
+
 	    args.put("State", true);
-	    RPC.send(rpcReq.getReplyAddress(), "commit-reply", "001", args);
+	    RPCRequest newReq = new RPCRequest("commit-reply", sa, rpcReq.tid, args);
+		
+	    RPC.send(rpcReq.getReplyAddress(), "commit-reply", "001", newReq.toJSONObject());
 	}	
     }
 
@@ -274,19 +263,14 @@ public class Worker implements Runnable {
 	    }
 	    
 	    RPCRequest rpcReq = (rpcReq) obj;
-
-	    if (rpcReq.getArgs() instanceof TransactionContext) {
+	    
+	    if (rpcReq.method == "start") {
 		this.startTransaction(rpcReq);
-	    } else if (rpcReq.getArgs() instanceof Abort) {
-		this.abort(rpcReq);
-	    } else if (rpcReq.getArgs() instanceof Commit) {
-		// TODO: should there be a state for "if ready, then commit?"
+	    } else if (rpcReq.method == "abort") {
+		this.abort(rpcReq);		
+	    } else if (rpcReq.method == "commit") {
 		this.commit(rpcReq);
-	    } else {
-		// this has to be "start-reply"
-		this.receive(rpcReq);
 	    }
-
 	}
 	
     }
