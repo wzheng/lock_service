@@ -14,50 +14,50 @@ public class LockTable {
     // TODO: locking performance?
 
     public LockTable() {
-	read_locks = new HashMap<String, HashSet<TransactionId> >();
-	write_locks = new HashMap<String, TransactionId>();
-	state = new HashMap<TransactionId, HashSet<String> >();
-	wfg = new HashMap<TransactionId, HashSet<TransactionId> >();
+		read_locks = new HashMap<String, HashSet<TransactionId> >();
+		write_locks = new HashMap<String, TransactionId>();
+		state = new HashMap<TransactionId, HashSet<String> >();
+		wfg = new HashMap<TransactionId, HashSet<TransactionId> >();
     }
 	
     public void lockW(String key, TransactionId tid) {
 	while (true) {
 	    synchronized(this) {
-		TransactionId wtid = write_locks.get(key);
-		HashSet<TransactionId> rtid = read_locks.get(key);
-		// Lock upgrade
-		if (rtid != null && rtid.contains(tid) && rtid.size() == 1) {
-		    rtid.remove(tid);
-		    read_locks.put(key, rtid);
-		    write_locks.put(key, tid);
-		    //updateState(tid, key, false);
-		    return ;
-		}
-		if ((wtid == null || wtid == tid) && (rtid == null || rtid.isEmpty())) {
-		    write_locks.put(key, tid);
-		    //updateState(tid, key, false);
-		    return ;
-		}
+			TransactionId wtid = write_locks.get(key);
+			HashSet<TransactionId> rtid = read_locks.get(key);
+			// Lock upgrade
+			if (rtid != null && rtid.contains(tid) && rtid.size() == 1) {
+			    rtid.remove(tid);
+			    read_locks.put(key, rtid);
+			    write_locks.put(key, tid);
+			    //updateState(tid, key, false);
+			    return ;
+			}
+			if ((wtid == null || wtid == tid) && (rtid == null || rtid.isEmpty())) {
+			    write_locks.put(key, tid);
+			    //updateState(tid, key, false);
+			    return ;
+			}
 	    }
 	    synchronized(this) {
-		TransactionId wtid = write_locks.get(key);
-		HashSet<TransactionId> rtid = read_locks.get(key);
-		HashSet<TransactionId> ret = wfg.get(tid);
-		if (ret == null) {
-		    ret = new HashSet<TransactionId>();
-		}
-		if (wtid != null) {
-		    ret.add(wtid);
-		}
-		if (rtid != null && !rtid.isEmpty()) {
-		    Iterator it = rtid.iterator();
-		    while (it.hasNext()) {
-			ret.add((TransactionId) it.next());
-		    }
-		}
-		wfg.put(tid, ret);
-		    
-		checkDeadLock(tid);
+			TransactionId wtid = write_locks.get(key);
+			HashSet<TransactionId> rtid = read_locks.get(key);
+			HashSet<TransactionId> ret = wfg.get(tid);
+			if (ret == null) {
+			    ret = new HashSet<TransactionId>();
+			}
+			if (wtid != null) {
+			    ret.add(wtid);
+			}
+			if (rtid != null && !rtid.isEmpty()) {
+			    Iterator<TransactionId> it = rtid.iterator();
+			    while (it.hasNext()) {
+			    	ret.add((TransactionId) it.next());
+			    }
+			}
+			wfg.put(tid, ret);
+			    
+			checkDeadLock(tid);
 	    }
 	}
     }
@@ -65,66 +65,66 @@ public class LockTable {
     public void lockR(String key, TransactionId tid) {
 	while (true) {
 	    synchronized(this) {
-		TransactionId wtid = write_locks.get(key);
-		if (wtid == null || wtid == tid) {
-		    HashSet<TransactionId> rtid = read_locks.get(key);
-		    if (rtid == null) {
-			rtid = new HashSet<TransactionId>();
-			rtid.add(tid);
-			read_locks.put(key, rtid);
-			//updateState(tid, key, false);
-			return ;
-		    } else {
-			rtid.add(tid);
-			read_locks.put(key, rtid);
-			//updateState(tid, key, false);
-			return ;
-		    }
-		}
+			TransactionId wtid = write_locks.get(key);
+			if (wtid == null || wtid == tid) {
+			    HashSet<TransactionId> rtid = read_locks.get(key);
+			    if (rtid == null) {
+					rtid = new HashSet<TransactionId>();
+					rtid.add(tid);
+					read_locks.put(key, rtid);
+					//updateState(tid, key, false);
+					return;
+			    } else {
+					rtid.add(tid);
+					read_locks.put(key, rtid);
+					//updateState(tid, key, false);
+					return;
+			    }
+			}
 	    }
 	    synchronized(this) {
-		TransactionId wtid = write_locks.get(key);
-		HashSet<TransactionId> rtid = read_locks.get(key);
-		HashSet<TransactionId> ret = wfg.get(tid);
-		if (ret == null) {
-		    ret = new HashSet<TransactionId>();
-		}
-		if (wtid != null) {
-		    ret.add(wtid);
-		}
-		wfg.put(tid, ret);
-		    
-		checkDeadLock(tid);
+			TransactionId wtid = write_locks.get(key);
+			HashSet<TransactionId> rtid = read_locks.get(key);
+			HashSet<TransactionId> ret = wfg.get(tid);
+			if (ret == null) {
+			    ret = new HashSet<TransactionId>();
+			}
+			if (wtid != null) {
+			    ret.add(wtid);
+			}
+			wfg.put(tid, ret);
+			    
+			checkDeadLock(tid);
 	    }
 	}
 
     }
 
     public synchronized void unlockR(String key, TransactionId tid) {
-	HashSet<TransactionId> rtid = read_locks.get(key);
-	if (rtid != null && rtid.contains(tid)) {
-	    rtid.remove(tid);
-	    read_locks.put(key, rtid);
-	    //updateState(tid, key, true);
-	}
+		HashSet<TransactionId> rtid = read_locks.get(key);
+		if (rtid != null && rtid.contains(tid)) {
+		    rtid.remove(tid);
+		    read_locks.put(key, rtid);
+		    //updateState(tid, key, true);
+		}
     }
 
     public synchronized void unlockW(String key, TransactionId tid) {
-	if (write_locks.get(key) == tid) {
-	    write_locks.remove(key);
-	    //updateState(tid, key, true);
-	}
+		if (write_locks.get(key) == tid) {
+		    write_locks.remove(key);
+		    //updateState(tid, key, true);
+		}
     }
 
     public synchronized boolean holdsLock(String pid, TransactionId tid) {
-	if (write_locks.get(pid) == tid || read_locks.get(pid).contains(tid)) {
-	    return true;
-	}
-	return false;
+		if (write_locks.get(pid) == tid || read_locks.get(pid).contains(tid)) {
+		    return true;
+		}
+		return false;
     }
 
     public synchronized HashSet<String> getPages(TransactionId tid) {
-	return state.get(tid);
+    	return state.get(tid);
     }
 
     // private void updateState(TransactionId tid, PageId pid, boolean isDone) {
@@ -141,55 +141,55 @@ public class LockTable {
     // }
 
     private void updateWFG(TransactionId tid) {
-	wfg.remove(tid);
-	Iterator it = wfg.keySet().iterator();
-	while (it.hasNext()) {
-	    TransactionId t = (TransactionId) it.next();
-	    HashSet<TransactionId> hs = (HashSet<TransactionId>) wfg.get(t);
-	    hs.remove(tid);
-	    wfg.put(t, hs);
-	}
+		wfg.remove(tid);
+		Iterator<TransactionId> it = wfg.keySet().iterator();
+		while (it.hasNext()) {
+		    TransactionId t = (TransactionId) it.next();
+		    HashSet<TransactionId> hs = (HashSet<TransactionId>) wfg.get(t);
+		    hs.remove(tid);
+		    wfg.put(t, hs);
+		}
     }
 
     private void checkDeadLock(TransactionId tid) {
-	// check to see if there are loops in the wfg
-	if (aborts.contains(tid)) {
-	    updateWFG(tid);
-	    aborts.remove(tid);
-	    //throw new TransactionAbortedException();
-	}
-	    
-	HashSet<TransactionId> alreadySeenTids = new HashSet<TransactionId>();
-	Stack<TransactionId> stack = new Stack<TransactionId>();
-
-	stack.push(tid);
-	while (true) {
-	    if (stack.isEmpty()) {
-		break;
-	    }
-	    TransactionId tempid = stack.pop();
-
-	    if (!alreadySeenTids.contains(tempid)) {
-		alreadySeenTids.add(tempid);
-	    } else {
-		//System.out.println("Aborting " + tid + " Found id is " + tempid);
-		if (tempid.equals(tid)) {
+		// check to see if there are loops in the wfg
+		if (aborts.contains(tid)) {
 		    updateWFG(tid);
+		    aborts.remove(tid);
 		    //throw new TransactionAbortedException();
-		} else {
-		    aborts.add(tempid);
-		    return ;
 		}
-	    }
-
-	    HashSet<TransactionId> temp = wfg.get(tempid);
-	    if (temp != null) {
-		Iterator it = temp.iterator();
-		while (it.hasNext()) {
-		    stack.push((TransactionId) it.next());
+		    
+		HashSet<TransactionId> alreadySeenTids = new HashSet<TransactionId>();
+		Stack<TransactionId> stack = new Stack<TransactionId>();
+	
+		stack.push(tid);
+		while (true) {
+		    if (stack.isEmpty()) {
+		    	break;
+		    }
+		    TransactionId tempid = stack.pop();
+	
+		    if (!alreadySeenTids.contains(tempid)) {
+		    	alreadySeenTids.add(tempid);
+		    } else {
+				//System.out.println("Aborting " + tid + " Found id is " + tempid);
+				if (tempid.equals(tid)) {
+				    updateWFG(tid);
+				    //throw new TransactionAbortedException();
+				} else {
+				    aborts.add(tempid);
+				    return ;
+				}
+		    }
+	
+		    HashSet<TransactionId> temp = wfg.get(tempid);
+		    if (temp != null) {
+				Iterator<TransactionId> it = temp.iterator();
+				while (it.hasNext()) {
+				    stack.push((TransactionId) it.next());
+				}
+		    }
 		}
-	    }
-	}
     }
 
 }

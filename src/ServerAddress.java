@@ -1,27 +1,24 @@
-import java.io.*;
-import java.util.*;
-
 public class ServerAddress {
     private int serverNumber;
     private String serverName;
     private int port;
 
     public ServerAddress(int serverNumber, String name, int port) {
-	this.serverNumber = serverNumber;
-	this.serverName = name;
-	this.port = port;
+		this.serverNumber = serverNumber;
+		this.serverName = name;
+		this.port = port;
     }
 
     public String getServerName() {
-	return this.serverName;
+    	return this.serverName;
     }
 
     public int getPort() {
-	return this.port;
+    	return this.port;
     }
 
     public int getServerNumber() {
-	return serverNumber;
+    	return serverNumber;
     }
 
     @Override

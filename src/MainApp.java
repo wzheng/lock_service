@@ -10,8 +10,8 @@ import com.thetransactioncompany.jsonrpc2.*;
 public class MainApp {
 
     public static void main(String[] args) {
-	System.out.println("Starting the program...");
-	Server s = new ServerStart("Server 1", 8000);
+		System.out.println("Starting the program...");
+		ServerStarter s = new ServerStarter("Server 1", 8000);
     }
 
 }

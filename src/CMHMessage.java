@@ -9,12 +9,12 @@ public class CMHMessage {
 	private int from;
 	private int to;
 
-	public CMHMessage(ServerAddress initiatorServerAddress,
-			ServerAddress fromServerAddress,
-			ServerAddress toServerAddress){
-		this.initiator = initiatorServerAddress.getServerNumber();
-		this.from = fromServerAddress.getServerNumber();
-		this.to = toServerAddress.getServerNumber();
+	public CMHMessage(TransactionId initiatorTID,
+			TransactionId fromTID,
+			TransactionId toTID){
+		this.initiator = initiatorTID.getTID();
+		this.from = fromTID.getTID();
+		this.to = toTID.getTID();
 	}
 	
 	public CMHMessage(int initiator, int from, int to){
@@ -40,6 +40,15 @@ public class CMHMessage {
 	 * Sends Chandy-Misra-Haas message
 	 */
 	public void sendMessage(){
-		
+		testSendMessage();
 	}
+	
+	/**
+	 * In test cases, sends a message. Should be changed to allow RPC, but for now
+	 * it accesses them through the static CMHHandler.
+	 */
+	public void testSendMessage(){
+		CMHHandler.processes.get(to).processMessage(getJSONMessage());
+	}
+	
 }
