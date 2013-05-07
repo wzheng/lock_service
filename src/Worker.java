@@ -33,11 +33,19 @@ public class Worker implements Runnable {
         //willCommit = false;
         cohorts = new HashSet<ServerAddress>();
         done = false;
+
+	this.writeLocked = new HashSet<String>();
+	this.readLocked = new HashSet<String>();
+	this.cohorts = new HashSet<ServerAddress>();
+
+	this.readSet = new HashMap<String, String>();
+	this.writeSet = new HashMap<String, String>();
     }
 
     public void startTransaction(RPCRequest rpcReq) {
-        TransactionContext txnContext = new TransactionContext();
-	txnContext.parseJSON((HashMap<String, Object>) rpcReq.args);
+        TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
+
+	System.out.println("Start transaction " + rpcReq.tid.getTID());
 
         if (txn == null) {
             txn = txnContext;
@@ -98,13 +106,12 @@ public class Worker implements Runnable {
 	    ServerAddress thisSA = this.server.getAddress();
 
             while (it.hasNext()) {
-
                 ServerAddress sa = this.server.getServerAddress(((Integer)it.next()).intValue());
                 HashMap<String, Object> args = txnContext.toJSONObject();
 		waitServers.add(sa); 
 
                 // TODO: what if packets are dropped?
-                RPCRequest newReq = new RPCRequest("start", sa, tid, args);
+                RPCRequest newReq = new RPCRequest("start", thisSA, tid, args);
                 RPC.send(sa, "start", "001", newReq.toJSONObject());
             }
 
@@ -290,17 +297,16 @@ public class Worker implements Runnable {
             Object obj = queue.get();
 
             if (obj.equals("")) {
-                //Thread.sleep(50);
 		continue;
             }
 
             RPCRequest rpcReq = (RPCRequest) obj;
 
-            if (rpcReq.method == "start") {
+            if (rpcReq.method.equals("start")) {
                 this.startTransaction(rpcReq);
-            } else if (rpcReq.method == "abort") {
+            } else if (rpcReq.method.equals("abort")) {
                 this.abort(rpcReq);
-            } else if (rpcReq.method == "commit") {
+            } else if (rpcReq.method.equals("commit")) {
                 this.commit(rpcReq);
             }
         }

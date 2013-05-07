@@ -10,6 +10,7 @@ public class CommunicationQ {
     }
 
     public synchronized Object get() {
+	//System.out.println("Get item");
         if (queue.isEmpty()) {
             return "";
         } else {
@@ -20,7 +21,7 @@ public class CommunicationQ {
     }
 
     public synchronized void put(Object item) {
-	System.out.println("Added item");
+	//System.out.println("Added item");
         queue.add(item);
     }
 

@@ -61,6 +61,8 @@ public class Server implements Runnable {
         AF = new HashMap<Integer, Integer>();
         reconfigState = ReconfigState.NONE;
         this.isMaster = isMaster;
+
+	this.activeWorkers = new HashMap<TransactionId, CommunicationQ>();
     }
 
     public PartitionTable getPartitionTable() {
@@ -125,20 +127,14 @@ public class Server implements Runnable {
 
         while (true) {
 
-            String str = (String) queue.get();
-            if (str.equals("")) {
-                //Thread.sleep(50);
-                continue;
-            }
-	    
-            JSONRPC2Request reqIn = null;
-            try {
-                reqIn = JSONRPC2Request.parse(str);
-            } catch (JSONRPC2ParseException e) {
-                System.err.println("ERROR: " + e.getMessage());
-            }
+	    Object in = queue.get();
+	    if (in.equals("")) {
+		continue;
+	    }
 
-	    System.out.println("Server " + address.getServerName() + "received request for " + reqIn.getMethod());
+            JSONRPC2Request reqIn = (JSONRPC2Request) in;
+
+	    System.out.println("Server " + address.getServerName() + " received request for " + reqIn.getMethod());
 
             // TODO: duplicate messages?
 	    
@@ -151,7 +147,9 @@ public class Server implements Runnable {
                 CommunicationQ q = new CommunicationQ();
                 this.activeWorkers.put(rpcReq.tid, q);
                 (new Thread(new Worker(this, q))).start();
-		
+
+		System.out.println("Started new worker");
+
                 q.put(rpcReq);
 
             } else {

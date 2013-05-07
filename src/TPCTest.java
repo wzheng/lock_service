@@ -28,9 +28,9 @@ public class TPCTest {
 	(new Thread(s2)).start();
 
 	HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
-	rpcArgs.put("ServerName", sa1.getServerName());
-	rpcArgs.put("ServerNumber", sa1.getServerNumber());
-	rpcArgs.put("ServerPort", sa1.getServerPort());	
+	// rpcArgs.put("ServerName", sa1.getServerName());
+	// rpcArgs.put("ServerNumber", sa1.getServerNumber());
+	// rpcArgs.put("ServerPort", sa1.getServerPort());	
 	HashMap<String, String> write_set = new HashMap<String, String>();
 	write_set.put("a", "b");
 	rpcArgs.put("Write Set", write_set);
@@ -42,9 +42,9 @@ public class TPCTest {
 	
 	RPCRequest newReq = new RPCRequest("start-done", client, tid, rpcArgs);
 	RPC.send(sa1, "start", "001", newReq.toJSONObject());
-	
+
 	JSONRPC2Request resp = rpc.receive();
-	System.out.println(resp.getParams());
+	System.out.println("Received response! " +resp.getParams());
     }
 
 }

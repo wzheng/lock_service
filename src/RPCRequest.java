@@ -17,26 +17,26 @@ public class RPCRequest {
 
         HashMap<String, Object> address = (HashMap<String, Object>) rpc.get("Address");
 
-        int port = ((Integer) address.get("Reply Port")).intValue();
         String name = (String) address.get("Reply Name");
-        int number = ((Integer) address.get("Reply Number")).intValue();
+        int number = ((Long) address.get("Reply Number")).intValue();
+        int port = ((Long) address.get("Reply Port")).intValue();
         replyAddress = new ServerAddress(number, name, port);
 
         this.args = rpc.get("Args");
         this.method = method;
 
         HashMap<String, Object> tid = (HashMap<String, Object>) rpc.get("TID");
-        port = ((Integer) tid.get("Port")).intValue();
+        port = ((Long) tid.get("Port")).intValue();
         name = (String) tid.get("Name");
-        number = ((Integer) tid.get("Number")).intValue();
+        number = ((Long) tid.get("Number")).intValue();
 
-        this.tid = new TransactionId(new ServerAddress(number, name, port), ((Integer) tid.get("TID")).intValue());
+        this.tid = new TransactionId(new ServerAddress(number, name, port), ((Long) tid.get("TID")).intValue());
     }
 
     public RPCRequest(String method, ServerAddress sa, TransactionId tid,
 		      HashMap<String, Object> args) {
         this.replyAddress = sa;
-        this.method = method;
+         this.method = method;
         this.tid = tid;
         this.args = args;
     }

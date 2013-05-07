@@ -16,6 +16,7 @@ public class TransactionId {
         return tid;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (obj == null) {
             return false;
@@ -28,11 +29,15 @@ public class TransactionId {
         }
 
         TransactionId tid = (TransactionId) obj;
-        if (tid.getServerAddress().equals(this.sa)
-                && (tid.getTID() == this.tid)) {
+        if (tid.getServerAddress().equals(this.sa) && (tid.getTID() == this.tid)) {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public int hashCode() {
+	return tid;
     }
 
 }

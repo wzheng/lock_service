@@ -42,4 +42,9 @@ public class ServerAddress {
         }
         return false;
     }
+
+    @Override
+    public int hashCode() {
+	return port;
+    }
 }

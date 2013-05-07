@@ -26,16 +26,16 @@ public class ServerStarter implements Runnable {
     }
 
     public void run() {
-        server.run();
-        //pu.run();
+        (new Thread(server)).start();
 
         while (true) {
 
             JSONRPC2Request req = rpc.receive();
+
             if (req.getMethod() == "reconfigure") {
                 //puQueue.put(req);
             } else {
-		System.out.println("received something");
+		System.out.println("received something in ServerStarter");
                 serverQueue.put(req);
             }
 
