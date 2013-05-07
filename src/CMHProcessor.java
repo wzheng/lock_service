@@ -77,7 +77,7 @@ public class CMHProcessor {
     public void clearWaitingForTid() {
         waitingForTIDs.clear();
     }
-
+    
     /**
      * Determines if a deadlock exists by checking the initiator and to fields
      * Sends a message if no deadlock detected but is still waiting for

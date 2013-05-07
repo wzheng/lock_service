@@ -14,12 +14,12 @@ public class Data {
         kvStore = new HashMap<Integer, HashMap<String, String>>();
     }
 
-    public void addNewPartition(int partitionNum) {
-        kvStore.put(new Integer(partitionNum), new HashMap<String, String>());
+    public synchronized String get(String key) {
+	return kvStore.get(new Integer(0)).get(key);
     }
 
-    public void insert(int partitionNum, String key, String value) {
-
+    public synchronized String put(String key, String value) {
+	return kvStore.get(new Integer(0)).put(key, value);
     }
 
 }

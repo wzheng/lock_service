@@ -10,77 +10,84 @@ import com.thetransactioncompany.jsonrpc2.*;
 
 public class RPC {
 
-    private String serverName;
-    private int port;
-    private Socket socket;
+    private ServerAddress address;
+    private ServerSocket server;
     private PrintWriter out;
     private BufferedReader in;
 
-    public RPC(String serverName, int port) {
-        this.serverName = serverName;
-        this.port = port;
+    public RPC(ServerAddress sa) {
+	this.address = sa;
 
-        try {
-            socket = new Socket("localhost", port);
-            out = new PrintWriter(socket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(
-                    socket.getInputStream()));
-        } catch (UnknownHostException e) {
-            System.err.println("Server " + serverName + " initialize failed");
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Couldn't get I/O for the connection to server "
-                    + serverName);
-            System.exit(1);
-        }
+	try {
+	    this.server = new ServerSocket(address.getServerPort());
+	} 
+	catch (IOException e) {
+	    System.out.println("Could not listen on port " + address.getServerPort());
+	    System.exit(-1);
+	}
+
     }
 
-    private void send(int port, String message) {
+    private static void send(int port, String message) {
         Socket echoSocket = null;
         PrintWriter out = null;
 
         try {
             echoSocket = new Socket("localhost", port);
             out = new PrintWriter(echoSocket.getOutputStream(), true);
+	    System.out.println("Trying to send message " + message);
+	    out.println(message);
+	    System.out.println("Message sent");
         } catch (UnknownHostException e) {
-            System.err.println("Don't know about host: taranis.");
+            System.err.println("Don't know about host " + port);
             System.exit(1);
         } catch (IOException e) {
-            System.err.println("Couldn't get I/O for "
-                    + "the connection to: taranis.");
+            System.err.println("Couldn't get I/O for " + "the connection " + port);
             System.exit(1);
         }
-        out.println(message);
     }
 
-    public void send(ServerAddress sa, String methodName, String uid,
-            List<Object> args) {
+    public static void send(ServerAddress sa, String methodName, String uid,
+			    HashMap<String, Object> args) {
         JSONRPC2Request reqOut = new JSONRPC2Request(methodName, args, uid);
         String jsonString = reqOut.toString();
-        this.send(sa.getPort(), jsonString);
+        RPC.send(sa.getServerPort(), jsonString);
     }
 
-    public void send(int port, JSONRPC2Request rpcObject) {
-        send(port, rpcObject.toString());
+    public static void send(int port, JSONRPC2Request rpcObject) {
+        RPC.send(port, rpcObject.toString());
     }
 
     // this call blocks
     public JSONRPC2Request receive() {
-        String request = null;
-        try {
-            request = in.readLine();
-        } catch (IOException e1) {
-            e1.printStackTrace();
-        }
 
-        JSONRPC2Request reqIn = null;
-        try {
-            reqIn = JSONRPC2Request.parse(request);
-            return reqIn;
-        } catch (JSONRPC2ParseException e) {
-            System.err.println(e.getMessage());
+	Socket clientSocket = null;
+	try {
+	    clientSocket = server.accept();
+	    System.out.println("received something");
+
+	    //PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+	    BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+	    
+	    String request = null;
+	    try {
+		request = in.readLine();
+	    } catch (IOException e1) {
+		e1.printStackTrace();
+	    }
+	    
+	    JSONRPC2Request reqIn = null;
+	    try {
+		reqIn = JSONRPC2Request.parse(request);
+		return reqIn;
+	    } catch (JSONRPC2ParseException e) {
+		System.err.println(e.getMessage());
+	    }
+	    
+	}  catch (IOException e) {
+            System.err.println("I/O failed when accepting a connection from port " + address.getServerPort());
         }
-        return null;
+	return null;
     }
 
 }

@@ -3,7 +3,7 @@ import java.util.*;
 
 import com.thetransactioncompany.jsonrpc2.*;
 
-public class ServerStarter {
+public class ServerStarter implements Runnable {
 
     private Server server;
     private PartitionUpdater pu;
@@ -11,24 +11,31 @@ public class ServerStarter {
     private CommunicationQ serverQueue;
     private CommunicationQ puQueue;
 
-    public ServerStarter(String name, int port, int numServers,
-            HashMap<Integer, PartitionData> config) {
+    private RPC rpc;
+
+    public ServerStarter(ServerAddress sa, 
+			 HashMap<Integer, PartitionTable.PartitionData> config, 
+			 boolean isMaster, 
+			 ArrayList<ServerAddress> servers) {
+
         serverQueue = new CommunicationQ();
-        puQueue = new CommunicationQ();
-        server = new Server(name, numServers, config);
-        pu = new PartitionUpdater(server, serverQueue);
+        //puQueue = new CommunicationQ();
+        server = new Server(sa, serverQueue, config, isMaster, servers);
+        //pu = new PartitionUpdater(server, puQueue);
+	rpc = new RPC(sa);
     }
 
     public void run() {
         server.run();
-        pu.run();
+        //pu.run();
 
         while (true) {
 
             JSONRPC2Request req = rpc.receive();
             if (req.getMethod() == "reconfigure") {
-                puQueue.put(req);
+                //puQueue.put(req);
             } else {
+		System.out.println("received something");
                 serverQueue.put(req);
             }
 

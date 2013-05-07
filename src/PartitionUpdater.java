@@ -31,9 +31,9 @@ public class PartitionUpdater implements Runnable {
     // Reconfiguration
     public void configure(JSONRPC2Request request) {
 
-        switch (call) {
-        case "":
-        }
+        // switch (call) {
+        // case "":
+        // }
 
         // synchronized(this.AF) {
         // ArrayList<Integer> partitions = new ArrayList<Integer>();
@@ -65,13 +65,12 @@ public class PartitionUpdater implements Runnable {
 
             String str = (String) queue.get();
             if (str.equals("")) {
-                Thread.sleep((long) 0.5);
                 continue;
             }
 
             JSONRPC2Request reqIn = null;
             try {
-                reqIn = JSONRPC2Request.parse(jsonString);
+                reqIn = JSONRPC2Request.parse(str);
             } catch (JSONRPC2ParseException e) {
                 System.err.println("PartitionUpdater ERROR: " + e.getMessage());
             }

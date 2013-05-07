@@ -1,3 +1,6 @@
+import java.io.*;
+import java.util.*;
+
 public class ServerAddress {
     private int serverNumber;
     private String serverName;
@@ -13,7 +16,7 @@ public class ServerAddress {
         return this.serverName;
     }
 
-    public int getPort() {
+    public int getServerPort() {
         return this.port;
     }
 
@@ -34,9 +37,7 @@ public class ServerAddress {
         }
 
         ServerAddress sa = (ServerAddress) obj;
-        if (sa.getServerName().equals(this.serverName)
-                && (sa.getServerNumber() == this.serverNumber)
-                && (sa.getPort() == this.port)) {
+        if (sa.getServerName().equals(this.serverName) && (sa.getServerNumber() == this.serverNumber) && (sa.getServerPort() == this.port)) {
             return true;
         }
         return false;

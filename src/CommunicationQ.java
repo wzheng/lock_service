@@ -20,6 +20,7 @@ public class CommunicationQ {
     }
 
     public synchronized void put(Object item) {
+	System.out.println("Added item");
         queue.add(item);
     }
 

@@ -3,13 +3,11 @@ import java.io.*;
 
 import com.thetransactioncompany.jsonrpc2.*;
 
-import static PartitionTable.PartitionData;
-
 /**
  * This simulates a machine that has several partitions of a table
  */
 
-public class Server {
+public class Server implements Runnable {
 
     private ServerAddress address;
     private LockTable lockTable;
@@ -19,39 +17,42 @@ public class Server {
 
     // transactions
     private int numThreads;
-    private HashMap<TransactionId, CommunicationQ> activeThreads;
+    private HashMap<TransactionId, CommunicationQ> activeWorkers;
 
     // reconfiguration
     private boolean isConfiguring;
-    private PartitionTable.PartitionData partitionTable;
+    private PartitionTable table;
     private HashMap<Integer, Integer> AF; // affinity factors
     private ReconfigState reconfigState; // current state of reconfiguration
     private boolean isMaster;
     private RPC rpc;
+    private CommunicationQ queue;
 
     // static variables
     private static int MAX_THREADS = 2;
 
-    public Server(ServerAddress address,
-            HashMap<Integer, PartitionTable.PartitionData> config,
-            boolean isMaster, ArrayList<ServerAddress> servers) {
+    public Server(ServerAddress address, CommunicationQ queue,
+		  HashMap<Integer, PartitionTable.PartitionData> config,
+		  boolean isMaster, ArrayList<ServerAddress> servers) {
+
         this.address = address;
         lockTable = new LockTable();
-        this.rpc = new RPC(name, port1);
         this.partitionTable = config;
         this.dataStore = new Data();
+	this.queue = queue;
+	this.serverList = new HashMap<Integer, ServerAddress>();
 
         Iterator servers_it = servers.iterator();
         while (servers_it.hasNext()) {
             ServerAddress sa = (ServerAddress) servers_it.next();
-            serverList.put(sa.getServerNumber(), sa);
+            serverList.put(new Integer(sa.getServerNumber()), sa);
         }
-
-        Iterator<Integer> itr = config.getPartitions();
-        while (itr.hasNext()) {
-            Integer i = (Integer) itr.next();
-            dataStore.addNewPartition(i);
-        }
+	
+	// Iterator<Integer> itr = config.getPartitions();
+        // while (itr.hasNext()) {
+        //     Integer i = (Integer) itr.next();
+        //     dataStore.addNewPartition(i);
+        // }
 
         this.isConfiguring = false;
 
@@ -63,11 +64,11 @@ public class Server {
     }
 
     public PartitionTable getPartitionTable() {
-        return partitionTable;
+        return table;
     }
 
     // For a certain key, returns the partition that key belongs to
-    public static int hashKey(String key) {
+    public int hashKey(String key) {
         return (key.hashCode()) % (serverList.size());
     }
 
@@ -95,28 +96,28 @@ public class Server {
         return this.address.getServerNumber();
     }
 
-    public void lockW(String key) {
-        this.lockTable.lockW(key);
+    public void lockW(String key, TransactionId tid) {
+        this.lockTable.lockW(key, tid);
     }
 
-    public void lockR(String key) {
-        this.lockTable.lockR(key);
+    public void lockR(String key, TransactionId tid) {
+        this.lockTable.lockR(key, tid);
     }
 
-    public void unlockW(String key) {
-        this.lockTable.unlockW(key);
+    public void unlockW(String key, TransactionId tid) {
+        this.lockTable.unlockW(key, tid);
     }
 
-    public void unlockR(String key) {
-        this.lockTable.unlockR(key);
+    public void unlockR(String key, TransactionId tid) {
+        this.lockTable.unlockR(key, tid);
     }
 
-    public get(String key) {
+    public String get(String key) {
         return this.dataStore.get(key);
     }
 
-    public put(String key, String value) {
-        return this.dataStore.put(key, value);
+    public void put(String key, String value) {
+        this.dataStore.put(key, value);
     }
 
     // check for incoming requests, spawn new worker threads as necessary
@@ -124,32 +125,33 @@ public class Server {
 
         while (true) {
 
-            String str = queue.get();
+            String str = (String) queue.get();
             if (str.equals("")) {
-                Thread.sleep((long) 0.5);
+                //Thread.sleep(50);
                 continue;
             }
-
+	    
             JSONRPC2Request reqIn = null;
             try {
-                reqIn = JSONRPC2Request.parse(jsonString);
+                reqIn = JSONRPC2Request.parse(str);
             } catch (JSONRPC2ParseException e) {
                 System.err.println("ERROR: " + e.getMessage());
             }
 
-            // TODO: duplicate messages?
+	    System.out.println("Server " + address.getServerName() + "received request for " + reqIn.getMethod());
 
+            // TODO: duplicate messages?
+	    
             String method = reqIn.getMethod();
             Map<String, Object> params = reqIn.getNamedParams();
             RPCRequest rpcReq = new RPCRequest(method, params);
-
+	    
             if (method.equals("start")) {
-
+		
                 CommunicationQ q = new CommunicationQ();
                 this.activeWorkers.put(rpcReq.tid, q);
-                (new Worker(this, q)).run();
-
-                rpcReq.addArgs(t);
+                (new Thread(new Worker(this, q))).start();
+		
                 q.put(rpcReq);
 
             } else {
