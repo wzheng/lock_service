@@ -1,7 +1,10 @@
 import java.io.*;
 import java.util.*;
+import java.lang.Math;
 
 import com.thetransactioncompany.jsonrpc2.*;
+
+// Test for two-phase commit
 
 public class TPCTest {
 
@@ -45,7 +48,80 @@ public class TPCTest {
 	JSONRPC2Request resp = rpc.receive();
     }
 
-    // Test for two-phase commit
+    public class TPCTester implements Runnable{
+	
+	private ArrayList<ServerAddress> servers;
+	private int seed;
+	private RPC rpc;
+	private ServerAddress address;
+
+	public TPCTester(ArrayList<ServerAddress> servers, int seed, ServerAddress local_address) {
+	    this.servers = servers;
+	    this.seed = seed;
+	    address = local_address;
+	    rpc = new RPC(address);
+	}
+
+	public void run() {
+
+	    HashMap<String, String> committedWrites = new HashMap<String, String>();
+	    HashMap<String, String> abortedWrites = new HashMap<String, String>();
+
+	    HashMap<String, String> wset = new HashMap<String, String>();
+	    HashMap<String, String> rset = new HashMap<String, String>();
+	    
+	    int tid = seed;
+	    
+	    // do writes
+	    for (int i = 0; i < 10; i++) {
+		ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
+		String key = Integer.toString(seed + i);
+		String value = Integer.toString(i);
+		wset.put(key, value);
+		TPCTest.startTxn(contact, address, tid, wset, rset, rpc);
+		if (Math.random() < 0.5) {
+		    // commit
+		    TPCTest.commit(contact, address, tid, rpc);
+		    committedWrites.put(key, value);
+		} else {
+		    // abort
+		    TPCTest.abort(contact, address, tid, rpc);
+		    abortedWrites.put(key, "");
+		}
+		tid += 1;
+		wset.clear();
+	    }
+
+	    // do reads
+	    Iterator it1 = committedWrites.entrySet().iterator();
+	    while (it1.hasNext()) {
+		ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
+		Map.Entry pair = (Map.Entry) it1.next();
+		String key = (String) pair.getKey();
+		String value = (String) pair.getValue();
+		rset.put(key, "");
+		System.out.println("Want " + key + ": " + value);
+		TPCTest.startTxn(contact, address, tid, wset, rset, rpc);
+		TPCTest.commit(contact, address, tid, rpc);
+		rset.clear();
+	    }
+
+	    Iterator it2 = abortedWrites.entrySet().iterator();
+	    while (it2.hasNext()) {
+		ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
+		Map.Entry pair = (Map.Entry) it2.next();
+		String key = (String) pair.getKey();
+		String value = (String) pair.getValue();
+		rset.put(key, "");
+		System.out.println("Want " + key + ": " + value);
+		TPCTest.startTxn(contact, address, tid, wset, rset, rpc);
+		TPCTest.commit(contact, address, tid, rpc);
+		rset.clear();		
+	    }
+	    
+	}
+
+    }
 
     public static void main(String[] args) {
 
@@ -90,6 +166,14 @@ public class TPCTest {
 	read_set.put("b", "");
 	TPCTest.startTxn(sa1, client, 3, write_set, read_set, rpc);
 	TPCTest.commit(sa1, client, 3, rpc);
+
+	TPCTest t = new TPCTest();
+
+	TPCTest.TPCTester t1 = t.new TPCTester(servers, 10, new ServerAddress(3, "T1", 8888));
+	TPCTest.TPCTester t2 = t.new TPCTester(servers, 100, new ServerAddress(4, "T2", 8889));
+
+	(new Thread(t1)).start();
+	(new Thread(t2)).start();
     }
 
 }

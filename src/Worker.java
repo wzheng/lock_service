@@ -84,8 +84,12 @@ public class Worker implements Runnable {
             if (serverNum == this.server.getServerNumber()) {
                 this.server.lockR(key, tid);
                 String value = this.server.get(key);
-                readSet.put(key, value);
-                readLocked.add(key);
+		if (value != null) {
+		    readSet.put(key, value);
+		} else {
+		    readSet.put(key, "");
+		}
+		readLocked.add(key);
             }
         }
 
@@ -121,6 +125,7 @@ public class Worker implements Runnable {
                 RPCRequest receivedReq = (RPCRequest) obj;
 		if (receivedReq.method.equals("abort")) {
 		    this.abort(rpcReq);
+		    return ;
 		} else {
 		    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
 		    Iterator rit = rset.entrySet().iterator();
@@ -182,7 +187,7 @@ public class Worker implements Runnable {
                 waitServers.add(sentServer);
             }
 
-            while (true) {
+            while (!waitServers.isEmpty()) {
                 Object obj = queue.get();
 
                 if (obj.equals("")) {
@@ -192,10 +197,6 @@ public class Worker implements Runnable {
 
                 RPCRequest req = (RPCRequest) obj;
                 waitServers.remove(req.replyAddress);
-
-                if (waitServers.isEmpty()) {
-                    break;
-                }
             }
 
 	    // reply to client
@@ -213,6 +214,7 @@ public class Worker implements Runnable {
 
             RPCRequest newReq = new RPCRequest("abort-reply", thisSA, rpcReq.tid, args);
             RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
+	    this.done = true;
         }
     }
 
@@ -267,6 +269,10 @@ public class Worker implements Runnable {
                 }
 
                 RPCRequest req = (RPCRequest) obj;
+		if (req.method.equals("abort")) {
+		    this.abort(rpcReq);
+		    return ;
+		}
                 waitServers.remove(req.replyAddress);
             }
 
@@ -288,6 +294,7 @@ public class Worker implements Runnable {
             RPCRequest newReq = new RPCRequest("commit-reply", thisSA, rpcReq.tid, args);
 
             RPC.send(rpcReq.replyAddress, "commit-reply", "001", newReq.toJSONObject());
+	    this.done = true;
         }
     }
 
