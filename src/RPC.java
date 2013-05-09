@@ -35,9 +35,9 @@ public class RPC {
         try {
             echoSocket = new Socket("localhost", port);
             out = new PrintWriter(echoSocket.getOutputStream(), true);
-	    System.out.println("Trying to send message " + message + " to port " + port);
+	    //System.out.println("Trying to send message " + message + " to port " + port);
 	    out.println(message);
-	    System.out.println("Message sent");
+	    //System.out.println("Message sent");
         } catch (UnknownHostException e) {
             System.err.println("Don't know about host " + port);
             System.exit(1);

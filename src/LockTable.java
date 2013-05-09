@@ -33,8 +33,7 @@ public class LockTable {
                     // updateState(tid, key, false);
                     return;
                 }
-                if ((wtid == null || wtid == tid)
-                        && (rtid == null || rtid.isEmpty())) {
+                if ((wtid == null || wtid == tid) && (rtid == null || rtid.isEmpty())) {
                     write_locks.put(key, tid);
                     // updateState(tid, key, false);
                     return;
@@ -58,7 +57,7 @@ public class LockTable {
                 }
                 wfg.put(tid, ret);
 
-                checkDeadLock(tid);
+                //checkDeadLock(tid);
             }
         }
     }
@@ -83,6 +82,7 @@ public class LockTable {
                     }
                 }
             }
+
             synchronized (this) {
                 TransactionId wtid = write_locks.get(key);
                 HashSet<TransactionId> rtid = read_locks.get(key);
@@ -95,7 +95,7 @@ public class LockTable {
                 }
                 wfg.put(tid, ret);
 
-                checkDeadLock(tid);
+                //checkDeadLock(tid);
             }
         }
 
@@ -111,7 +111,7 @@ public class LockTable {
     }
 
     public synchronized void unlockW(String key, TransactionId tid) {
-        if (write_locks.get(key) == tid) {
+        if (write_locks.get(key).equals(tid)) {
             write_locks.remove(key);
             // updateState(tid, key, true);
         }

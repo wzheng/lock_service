@@ -29,7 +29,6 @@ public class Worker implements Runnable {
         this.server = server;
         this.queue = queue;
         txn = null;
-        readSet = new HashMap<String, String>();
         //willCommit = false;
         cohorts = new HashSet<ServerAddress>();
         done = false;
@@ -45,15 +44,13 @@ public class Worker implements Runnable {
     public void startTransaction(RPCRequest rpcReq) {
         TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
 
-	System.out.println("Start transaction " + rpcReq.tid.getTID());
+	//System.out.println("Start transaction " + rpcReq.tid.getTID());
 
         if (txn == null) {
             txn = txnContext;
         }
 
         TransactionId tid = rpcReq.tid;
-
-        ArrayList<Integer> contactPartitions = new ArrayList<Integer>();
 
         Iterator<String> write_set_it = txnContext.write_set.keySet()
                 .iterator();
@@ -64,7 +61,7 @@ public class Worker implements Runnable {
             int serverNum = this.server.hashKey(key);
 
             // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress())) {
+            if (this.server.getAddress().equals(tid.getServerAddress()) && serverNum != this.server.getServerNumber()) {
                 cohorts.add(this.server.getServerAddress(serverNum));
             }
 
@@ -72,18 +69,16 @@ public class Worker implements Runnable {
                 this.server.lockW(key, tid);
                 writeLocked.add(key);
 		writeSet.put(key, (String) txnContext.write_set.get(key));
-            } else {
-                contactPartitions.add(new Integer(serverNum));
             }
-        }
+	}
 
         while (read_set_it.hasNext()) {
             String key = (String) read_set_it.next();
             int serverNum = this.server.hashKey(key);
 
             // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress())) {
-                cohorts.add(this.server.getServerAddress(serverNum));
+            if (this.server.getAddress().equals(tid.getServerAddress()) && serverNum != this.server.getServerNumber()) {
+		cohorts.add(this.server.getServerAddress(serverNum));
             }
 
             if (serverNum == this.server.getServerNumber()) {
@@ -91,8 +86,6 @@ public class Worker implements Runnable {
                 String value = this.server.get(key);
                 readSet.put(key, value);
                 readLocked.add(key);
-            } else {
-                contactPartitions.add(new Integer(serverNum));
             }
         }
 
@@ -101,12 +94,12 @@ public class Worker implements Runnable {
             // need to make requests to get all locks from necessary servers
             // go ahead and sends txnContext to all
 
-            Iterator it = contactPartitions.iterator();
+            Iterator it = cohorts.iterator();
 	    HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
 	    ServerAddress thisSA = this.server.getAddress();
 
             while (it.hasNext()) {
-                ServerAddress sa = this.server.getServerAddress(((Integer)it.next()).intValue());
+                ServerAddress sa = (ServerAddress) it.next();
                 HashMap<String, Object> args = txnContext.toJSONObject();
 		waitServers.add(sa); 
 
@@ -117,7 +110,7 @@ public class Worker implements Runnable {
 
 	    // receive replies from all of the cohorts, reply to client
 
-            while (true) {
+            while (!waitServers.isEmpty()) {
                 Object obj = queue.get();
 
                 if (obj.equals("")) {
@@ -126,12 +119,17 @@ public class Worker implements Runnable {
                 }
 
                 RPCRequest receivedReq = (RPCRequest) obj;
+		if (receivedReq.method.equals("abort")) {
+		    this.abort(rpcReq);
+		} else {
+		    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
+		    Iterator rit = rset.entrySet().iterator();
+		    while (rit.hasNext()) {
+			Map.Entry kv = (Map.Entry) rit.next();
+			readSet.put((String) kv.getKey(), (String) kv.getValue());
+		    }
+		}
                 waitServers.remove(receivedReq.replyAddress);
-
-                if (waitServers.isEmpty()) {
-                    this.done = true;
-                    break;
-                }
             }
 
 	    // reply to client
@@ -171,12 +169,12 @@ public class Worker implements Runnable {
         if (this.server.getAddress().equals(rpcReq.tid.getServerAddress())) {
             // sends "abort" to all servers
             HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
+	    ServerAddress thisSA = this.server.getAddress();
 
             Iterator<ServerAddress> it = cohorts.iterator();
             while (it.hasNext()) {
 
                 HashMap<String, Object> args = new HashMap<String, Object>();
-                ServerAddress thisSA = this.server.getAddress();
                 RPCRequest newReq = new RPCRequest("abort", thisSA, rpcReq.tid, args);
 
                 ServerAddress sentServer = (ServerAddress) it.next();
@@ -196,12 +194,16 @@ public class Worker implements Runnable {
                 waitServers.remove(req.replyAddress);
 
                 if (waitServers.isEmpty()) {
-                    this.done = true;
                     break;
                 }
             }
 
 	    // reply to client
+	    HashMap<String, Object> args = new HashMap<String, Object>();
+	    args.put("State", true);
+            RPCRequest newReq = new RPCRequest("abort-done", thisSA, rpcReq.tid, args);
+	    RPC.send(rpcReq.replyAddress, "abort-done", "001", newReq.toJSONObject());
+	    this.done = true;
 
         } else {
             // sends "ack" back to original server
@@ -216,11 +218,14 @@ public class Worker implements Runnable {
 
     // TODO: write to log?
     public void commit(RPCRequest rpcReq) {
+	//System.out.println("Ready to commit");
+	
         // commit the transaction, release all locks held by the txn
         // write everything from write set to data store
         Iterator it = writeSet.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry kv = (Map.Entry) it.next();
+	    //System.out.println((String) kv.getKey() + ": " + (String) kv.getValue());
             this.server.put((String) kv.getKey(), (String) kv.getValue());
         }
 
@@ -239,8 +244,9 @@ public class Worker implements Runnable {
         // OR: reply to replyAddress, exit
         if (this.server.getAddress().equals(rpcReq.tid.getServerAddress())) {
             // sends "commit" to all servers
-            HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
 	    ServerAddress thisSA = this.server.getAddress();
+
+            HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
             Iterator c_it = cohorts.iterator();
             while (c_it.hasNext()) {
 
@@ -252,7 +258,7 @@ public class Worker implements Runnable {
                 waitServers.add(sentServer);
             }
 
-            while (true) {
+            while (!waitServers.isEmpty()) {
                 Object obj = queue.get();
 
                 if (obj.equals("")) {
@@ -262,12 +268,15 @@ public class Worker implements Runnable {
 
                 RPCRequest req = (RPCRequest) obj;
                 waitServers.remove(req.replyAddress);
-
-                if (waitServers.isEmpty()) {
-                    this.done = true;
-                    break;
-                }
             }
+
+	    // reply to client
+	    HashMap<String, Object> args = new HashMap<String, Object>();
+	    args.put("State", true);
+	    args.put("Read Set", readSet);
+            RPCRequest newReq = new RPCRequest("commit-done", thisSA, rpcReq.tid, args);
+	    RPC.send(rpcReq.replyAddress, "commit-done", "001", newReq.toJSONObject());
+	    this.done = true;
 
         } else {
             // sends "ack" back to original server
@@ -275,6 +284,7 @@ public class Worker implements Runnable {
             ServerAddress thisSA = this.server.getAddress();
 
             args.put("State", true);
+	    //args.put("Read Set", read_set);
             RPCRequest newReq = new RPCRequest("commit-reply", thisSA, rpcReq.tid, args);
 
             RPC.send(rpcReq.replyAddress, "commit-reply", "001", newReq.toJSONObject());
@@ -301,6 +311,7 @@ public class Worker implements Runnable {
             }
 
             RPCRequest rpcReq = (RPCRequest) obj;
+	    //System.out.println("rpcReq: " + rpcReq.method);
 
             if (rpcReq.method.equals("start")) {
                 this.startTransaction(rpcReq);

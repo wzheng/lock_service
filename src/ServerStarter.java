@@ -35,7 +35,7 @@ public class ServerStarter implements Runnable {
             if (req.getMethod() == "reconfigure") {
                 //puQueue.put(req);
             } else {
-		System.out.println("received something in ServerStarter");
+		//System.out.println("received something in ServerStarter");
                 serverQueue.put(req);
             }
 

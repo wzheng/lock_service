@@ -12,6 +12,7 @@ public class Data {
 
     public Data() {
         kvStore = new HashMap<Integer, HashMap<String, String>>();
+	kvStore.put(new Integer(0), new HashMap<String, String>());
     }
 
     public synchronized String get(String key) {
