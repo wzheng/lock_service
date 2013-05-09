@@ -14,7 +14,9 @@ public class CMHProcessor {
     private Set<CMHMessage> messagesToSend;
     private Set<ServerAddress> nextServerAddresses;
 
-    String deadlocked = "false";
+    boolean deadlocked = false;
+    
+    
 
     // testing
     /**
@@ -88,7 +90,7 @@ public class CMHProcessor {
     public boolean detectDeadlock(int initiatorTID, int fromTID, int thisTID) {
         // deadlock if cycle is complete
         if (initiatorTID == thisTID) {
-            deadlocked = "true";
+            deadlocked = true;
             return true;
         }
 
@@ -106,7 +108,7 @@ public class CMHProcessor {
         }
 
         // if not waiting for resources, not deadlocked
-        deadlocked = "false";
+        deadlocked = false;
         return false;
     }
 

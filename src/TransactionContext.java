@@ -1,4 +1,3 @@
-import java.io.*;
 import java.util.*;
 
 public class TransactionContext {
@@ -7,14 +6,18 @@ public class TransactionContext {
     public boolean isRW;
     public HashMap<String, String> write_set;
     public HashMap<String, String> read_set;
+    
+    // Chandy-Misra-Haas local state
+    private CMHProcessor cmh;
 
     public TransactionContext(TransactionId tid, Map<String, Object> params) {
 	
-	this.tid = tid;
+    	this.tid = tid;
 
         //this.isRW = ((Boolean) params.get("RW")).booleanValue();
         this.write_set = (HashMap<String, String>) params.get("Write Set");
         this.read_set = (HashMap<String, String>) params.get("Read Set");
+        this.cmh = new CMHProcessor(tid);
 
     }
 
@@ -33,6 +36,10 @@ public class TransactionContext {
         ret.put("Write Set", write_set);
         ret.put("Read Set", read_set);
         return ret;
+    }
+    
+    public CMHProcessor getCMHProcessor(){
+    	return cmh;
     }
 
 }

@@ -10,6 +10,7 @@ public class LockTable {
     private HashMap<TransactionId, HashSet<TransactionId>> wfg;
 
     private HashSet<TransactionId> aborts;
+    
 
     // TODO: locking performance?
 
@@ -18,6 +19,7 @@ public class LockTable {
         write_locks = new HashMap<String, TransactionId>();
         state = new HashMap<TransactionId, HashSet<String>>();
         wfg = new HashMap<TransactionId, HashSet<TransactionId>>();
+
     }
 
     public void lockW(String key, TransactionId tid) {
@@ -52,7 +54,7 @@ public class LockTable {
                 if (rtid != null && !rtid.isEmpty()) {
                     Iterator<TransactionId> it = rtid.iterator();
                     while (it.hasNext()) {
-                        ret.add((TransactionId) it.next());
+                        ret.add(it.next());
                     }
                 }
                 wfg.put(tid, ret);
@@ -118,10 +120,7 @@ public class LockTable {
     }
 
     public synchronized boolean holdsLock(String pid, TransactionId tid) {
-        if (write_locks.get(pid) == tid || read_locks.get(pid).contains(tid)) {
-            return true;
-        }
-        return false;
+        return (write_locks.get(pid) == tid || read_locks.get(pid).contains(tid));
     }
 
     public synchronized HashSet<String> getPages(TransactionId tid) {

@@ -39,8 +39,8 @@ public class Server implements Runnable {
         lockTable = new LockTable();
         this.partitionTable = config;
         this.dataStore = new Data();
-	this.queue = queue;
-	this.serverList = new HashMap<Integer, ServerAddress>();
+        this.queue = queue;
+        this.serverList = new HashMap<Integer, ServerAddress>();
 
         Iterator servers_it = servers.iterator();
         while (servers_it.hasNext()) {
@@ -127,14 +127,14 @@ public class Server implements Runnable {
 
         while (true) {
 
-	    Object in = queue.get();
-	    if (in.equals("")) {
-		continue;
-	    }
+		    Object in = queue.get();
+		    if (in.equals("")) {
+		    	continue;
+		    }
 
             JSONRPC2Request reqIn = (JSONRPC2Request) in;
 
-	    //System.out.println("Server " + address.getServerName() + " received request for " + reqIn.getMethod());
+            //System.out.println("Server " + address.getServerName() + " received request for " + reqIn.getMethod());
 
             // TODO: duplicate messages?
 	    
@@ -148,12 +148,12 @@ public class Server implements Runnable {
                 this.activeWorkers.put(rpcReq.tid, q);
                 (new Thread(new Worker(this, q))).start();
 
-		//System.out.println("Started new worker");
+                //System.out.println("Started new worker");
 
                 q.put(rpcReq);
 
             } else {
-		//System.out.println("Putting req " + method + " in queue " + rpcReq);
+            	//System.out.println("Putting req " + method + " in queue " + rpcReq);
                 this.activeWorkers.get(rpcReq.tid).put(rpcReq);
             }
         }

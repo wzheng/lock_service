@@ -33,12 +33,13 @@ public class Worker implements Runnable {
         cohorts = new HashSet<ServerAddress>();
         done = false;
 
-	this.writeLocked = new HashSet<String>();
-	this.readLocked = new HashSet<String>();
-	this.cohorts = new HashSet<ServerAddress>();
+		this.writeLocked = new HashSet<String>();
+		this.readLocked = new HashSet<String>();
+		this.cohorts = new HashSet<ServerAddress>();
+	
+		this.readSet = new HashMap<String, String>();
+		this.writeSet = new HashMap<String, String>();
 
-	this.readSet = new HashMap<String, String>();
-	this.writeSet = new HashMap<String, String>();
     }
 
     public void startTransaction(RPCRequest rpcReq) {
@@ -78,18 +79,18 @@ public class Worker implements Runnable {
 
             // if coordinator
             if (this.server.getAddress().equals(tid.getServerAddress()) && serverNum != this.server.getServerNumber()) {
-		cohorts.add(this.server.getServerAddress(serverNum));
+            	cohorts.add(this.server.getServerAddress(serverNum));
             }
 
             if (serverNum == this.server.getServerNumber()) {
                 this.server.lockR(key, tid);
                 String value = this.server.get(key);
-		if (value != null) {
-		    readSet.put(key, value);
-		} else {
-		    readSet.put(key, "");
-		}
-		readLocked.add(key);
+				if (value != null) {
+				    readSet.put(key, value);
+				} else {
+				    readSet.put(key, "");
+				}
+			readLocked.add(key);
             }
         }
 
