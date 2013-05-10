@@ -131,10 +131,10 @@ public class Server implements Runnable  {
 
         while (true) {
 
-		    Object in = queue.get();
-		    if (in.equals("")) {
-		    	continue;
-		    }
+	    Object in = queue.get();
+	    if (in.equals("")) {
+		continue;
+	    }
 
             JSONRPC2Request reqIn = (JSONRPC2Request) in;
 
