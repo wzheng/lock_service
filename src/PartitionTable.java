@@ -8,48 +8,18 @@ import java.io.*;
 
 public class PartitionTable {
 
-    public class PartitionData {
+    private HashMap<Integer, ServerAddress> table;
 
-        private int partitionNumber;
-        private ArrayList<ServerAddress> servers; // contains a list of servers
-                                                  // to contact
-
-        public PartitionData(int num) {
-            this.partitionNumber = num;
-        }
-
-        public void addServer(ServerAddress server) {
-            this.servers.add(server);
-        }
-
-        public int getPartitionNumber() {
-            return this.partitionNumber;
-        }
-
-    }
-
-    private HashMap<Integer, PartitionData> table;
-    private VersionVector vv;
-
-    public PartitionTable(int size) {
-        vv = new VersionVector(size);
+    public PartitionTable() {
+	table = new HashMap<Integer, ServerAddress>();
     }
 
     public void addPartition(int pNum, ServerAddress server) {
         Integer num = new Integer(pNum);
-
-        if (table.containsKey(num)) {
-            PartitionData pd = table.get(num);
-            pd.addServer(server);
-            table.put(num, pd);
-        } else {
-            PartitionData pd = new PartitionData(pNum);
-            pd.addServer(server);
-            table.put(num, pd);
-        }
+	table.put(num, server);
     }
 
-    public Iterator<Integer> getPartitions() {
-        return table.keySet().iterator();
+    public ServerAddress getServer(int pNum) {
+	return table.get(new Integer(pNum));
     }
 }
