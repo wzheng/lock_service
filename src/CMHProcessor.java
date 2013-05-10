@@ -1,3 +1,4 @@
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,8 +14,12 @@ public class CMHProcessor {
 
     private Set<CMHMessage> messagesToSend;
     private Set<ServerAddress> nextServerAddresses;
+    
+    private RPC rpc;
 
     boolean deadlocked = false;
+    
+    //RPC rpc = null;
     
     
 
@@ -25,8 +30,17 @@ public class CMHProcessor {
     private Set<Integer> waitingForTIDs;
 
     public CMHProcessor(TransactionId transaction) {
-        this.currentServer = transaction.getServerAddress();
+        //this.currentServer = transaction.getServerAddress();
         this.messagesToSend = new HashSet<CMHMessage>();
+    	//this.messageToSend = null;
+        this.nextServerAddresses = new HashSet<ServerAddress>();
+        this.waitingForTIDs = new HashSet<Integer>();
+    }
+    
+    public CMHProcessor(ServerAddress sa){
+        this.currentServer = sa;
+        this.messagesToSend = new HashSet<CMHMessage>();
+    	//this.messageToSend = null;
         this.nextServerAddresses = new HashSet<ServerAddress>();
         this.waitingForTIDs = new HashSet<Integer>();
     }
@@ -110,6 +124,38 @@ public class CMHProcessor {
         // if not waiting for resources, not deadlocked
         deadlocked = false;
         return false;
+    }
+    
+    /**
+     * Generates initial Chandy-Misra-Haas message(s)
+     * @param currentTransaction The TID that generates this message
+     * @param waitingForTransactions Transactions which this TID is waiting for
+     */
+    public void generateMessage(TransactionId currentTransaction, Set<TransactionId> waitingForTransactions) {
+    	//rpc = new RPC(currentTransaction.getServerAddress());
+    	for (TransactionId waitingFortid: waitingForTransactions) {
+    		CMHMessage msg = new CMHMessage(currentTransaction, currentTransaction, waitingFortid);
+    		messagesToSend.add(msg);
+    		HashMap<String, Object> args = msg.getArgs();
+    		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
+    		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
+    		//JSONRPC2Request resp = rpc.receive();
+    	}
+    }
+    
+    /**
+     * Sends a Chandy-Misra-Haas message along the path
+     */
+    public void propagateMessage(int initiator, TransactionId currentTransaction, Set<TransactionId> waitingForTransactions){
+    	//rpc = new RPC(currentTransaction.getServerAddress());
+    	for (TransactionId waitingFortid: waitingForTransactions) {
+    		CMHMessage msg = new CMHMessage(initiator, currentTransaction.getTID(), waitingFortid.getTID());
+    		messagesToSend.add(msg);
+    		HashMap<String, Object> args = msg.getArgs();
+    		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
+    		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
+    		//JSONRPC2Request resp = rpc.receive();
+    	}
     }
 
 }

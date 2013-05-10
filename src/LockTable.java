@@ -8,18 +8,23 @@ public class LockTable {
     private HashMap<String, TransactionId> write_locks;
     private HashMap<TransactionId, HashSet<String>> state;
     private HashMap<TransactionId, HashSet<TransactionId>> wfg;
+    private ServerAddress sa;
 
     private HashSet<TransactionId> aborts;
     
 
     // TODO: locking performance?
 
-    public LockTable() {
+    public LockTable(ServerAddress sa) {
         read_locks = new HashMap<String, HashSet<TransactionId>>();
         write_locks = new HashMap<String, TransactionId>();
         state = new HashMap<TransactionId, HashSet<String>>();
         wfg = new HashMap<TransactionId, HashSet<TransactionId>>();
-
+        this.sa = sa;
+    }
+    
+    public HashSet<TransactionId> getWFG(TransactionId tid){
+    	return wfg.get(tid);
     }
 
     public void lockW(String key, TransactionId tid) {
@@ -35,7 +40,7 @@ public class LockTable {
                     // updateState(tid, key, false);
                     return;
                 }
-                if ((wtid == null || wtid == tid) && (rtid == null || rtid.isEmpty())) {
+                else if ((wtid == null || wtid == tid) && (rtid == null || rtid.isEmpty())) {
                     write_locks.put(key, tid);
                     // updateState(tid, key, false);
                     return;
@@ -58,7 +63,7 @@ public class LockTable {
                     }
                 }
                 wfg.put(tid, ret);
-
+                cmhDeadlockInitiate(tid);
                 //checkDeadLock(tid);
             }
         }
@@ -96,7 +101,7 @@ public class LockTable {
                     ret.add(wtid);
                 }
                 wfg.put(tid, ret);
-
+                cmhDeadlockInitiate(tid);
                 //checkDeadLock(tid);
             }
         }
@@ -150,7 +155,19 @@ public class LockTable {
             wfg.put(t, hs);
         }
     }
-
+    
+    /**
+     * Checks if the current lock acquire operation is in deadlock.
+     * Sends a Chandy-Misra-Haas message to the process that .
+     */
+    public void cmhDeadlockInitiate(TransactionId tid){
+    	
+    	CMHProcessor cmhProcessor = new CMHProcessor(tid);
+    	// generate initial message from this TID and any others it's waiting on
+    	cmhProcessor.generateMessage(tid, getWFG(tid));
+    	
+    }
+    
     private void checkDeadLock(TransactionId tid) {
         // check to see if there are loops in the wfg
         if (aborts.contains(tid)) {

@@ -94,19 +94,19 @@ public class Worker implements Runnable {
             }
         }
 
-        // TODO: this can definitely be optmized
+        // TODO: this can definitely be optimized
         if (this.server.getAddress().equals(tid.getServerAddress())) {
             // need to make requests to get all locks from necessary servers
             // go ahead and sends txnContext to all
 
-            Iterator it = cohorts.iterator();
-	    HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
-	    ServerAddress thisSA = this.server.getAddress();
+            Iterator<ServerAddress> it = cohorts.iterator();
+            HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
+            ServerAddress thisSA = this.server.getAddress();
 
             while (it.hasNext()) {
                 ServerAddress sa = (ServerAddress) it.next();
                 HashMap<String, Object> args = txnContext.toJSONObject();
-		waitServers.add(sa); 
+                waitServers.add(sa); 
 
                 // TODO: what if packets are dropped?
                 RPCRequest newReq = new RPCRequest("start", thisSA, tid, args);
@@ -120,21 +120,21 @@ public class Worker implements Runnable {
 
                 if (obj.equals("")) {
                     //Thread.sleep(50);
-		    continue;
+                	continue;
                 }
 
                 RPCRequest receivedReq = (RPCRequest) obj;
-		if (receivedReq.method.equals("abort")) {
-		    this.abort(rpcReq);
-		    return ;
-		} else {
-		    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
-		    Iterator rit = rset.entrySet().iterator();
-		    while (rit.hasNext()) {
-			Map.Entry kv = (Map.Entry) rit.next();
-			readSet.put((String) kv.getKey(), (String) kv.getValue());
-		    }
-		}
+				if (receivedReq.method.equals("abort")) {
+				    this.abort(rpcReq);
+				    return ;
+				} else {
+				    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
+				    Iterator rit = rset.entrySet().iterator();
+				    while (rit.hasNext()) {
+					Map.Entry kv = (Map.Entry) rit.next();
+					readSet.put((String) kv.getKey(), (String) kv.getValue());
+				    }
+				}
                 waitServers.remove(receivedReq.replyAddress);
             }
 
@@ -308,6 +308,34 @@ public class Worker implements Runnable {
             this.readSet.put((String) kv.getKey(), (String) kv.getValue());
         }
     }
+    
+
+    /**
+     * Called when a Chandy-Misra-Haas message is received. Determines if a deadlock
+     * exists or if not, sends messages to other resources it's waiting for.
+     * @param req
+     */
+    public void cmhDeadlockReceiveMessage(RPCRequest req){
+    	CMHProcessor cmhProcessor = new CMHProcessor(req.tid);
+    	System.out.println(req.args);
+    	HashMap<String, Object> args = (HashMap<String, Object>) req.args;
+    	int initiator = (Integer) args.get("initiator");
+    	int to = (Integer) args.get("to");
+    	int from = (Integer) args.get("from");
+    	if (initiator == to){
+    		System.out.println("Deadlock detected");
+    	} else {
+    		// continue to send messages
+    		cmhProcessor.propagateMessage(initiator, req.tid, server.getWFG(req.tid));
+    	}
+    }
+    
+    public void processcmhMessage(RPCRequest rpcReq){
+        if (this.server.getAddress().equals(rpcReq.tid.getServerAddress())) {
+		    //ServerAddress thisSA = this.server.getAddress();
+	    	cmhDeadlockReceiveMessage(rpcReq);
+        }
+    }
 
     public void run() {
 
@@ -327,6 +355,8 @@ public class Worker implements Runnable {
                 this.abort(rpcReq);
             } else if (rpcReq.method.equals("commit")) {
                 this.commit(rpcReq);
+            } else if (rpcReq.method.equals("deadlock")){
+            	this.processcmhMessage(rpcReq);
             }
         }
 

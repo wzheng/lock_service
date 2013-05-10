@@ -7,7 +7,7 @@ import com.thetransactioncompany.jsonrpc2.*;
  * This simulates a machine that has several partitions of a table
  */
 
-public class Server implements Runnable {
+public class Server implements Runnable  {
 
     private ServerAddress address;
     private LockTable lockTable;
@@ -36,7 +36,7 @@ public class Server implements Runnable {
 		  boolean isMaster, ArrayList<ServerAddress> servers) {
 
         this.address = address;
-        lockTable = new LockTable();
+        lockTable = new LockTable(address);
         this.partitionTable = config;
         this.dataStore = new Data();
         this.queue = queue;
@@ -67,6 +67,10 @@ public class Server implements Runnable {
 
     public PartitionTable getPartitionTable() {
         return table;
+    }
+    
+    public HashSet<TransactionId> getWFG(TransactionId tid){
+    	return lockTable.getWFG(tid);
     }
 
     // For a certain key, returns the partition that key belongs to
@@ -158,4 +162,5 @@ public class Server implements Runnable {
             }
         }
     }
+
 }

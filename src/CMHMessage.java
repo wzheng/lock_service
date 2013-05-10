@@ -9,6 +9,12 @@ public class CMHMessage {
     private int from;
     private int to;
 
+    /**
+     * 
+     * @param initiatorTID TID from which this message originated
+     * @param fromTID TID which last received this message
+     * @param toTID Next TID to receive message
+     */
     public CMHMessage(TransactionId initiatorTID, TransactionId fromTID,
             TransactionId toTID) {
         this.initiator = initiatorTID.getTID();
@@ -29,12 +35,20 @@ public class CMHMessage {
      */
     public String getJSONMessage() {
         String method = "processMessage";
-        Map<String, Object> params = new HashMap<String, Object>();
+        JSONRPC2Notification req = new JSONRPC2Notification(method, getArgs());
+        return req.toString();
+    }
+    
+    /**
+     * Returns a Map of appropriate JSON message arguments
+     * @return Map<String, Object> for JSON encoding
+     */
+    public HashMap<String, Object> getArgs(){
+        HashMap<String, Object> params = new HashMap<String, Object>();
         params.put("initiator", initiator);
         params.put("from", from);
         params.put("to", to);
-        JSONRPC2Notification req = new JSONRPC2Notification(method, params);
-        return req.toString();
+        return params;
     }
 
     /**

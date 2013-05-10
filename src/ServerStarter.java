@@ -19,10 +19,12 @@ public class ServerStarter implements Runnable {
 			 ArrayList<ServerAddress> servers) {
 
         serverQueue = new CommunicationQ();
+
         //puQueue = new CommunicationQ();
         server = new Server(sa, serverQueue, config, isMaster, servers);
+
         //pu = new PartitionUpdater(server, puQueue);
-	rpc = new RPC(sa);
+        rpc = new RPC(sa);
     }
 
     public void run() {
@@ -37,6 +39,7 @@ public class ServerStarter implements Runnable {
             } else {
 		//System.out.println("received something in ServerStarter");
                 serverQueue.put(req);
+                System.out.println("added " + req.toJSONString());
             }
 
         }
