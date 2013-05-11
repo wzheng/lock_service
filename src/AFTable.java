@@ -8,39 +8,6 @@ import java.util.*;
 
 public class AFTable {
 
-    public class Pair {
-	public Integer p1;
-	public Integer p2;
-
-	public Pair(Integer i, Integer j) {
-	    p1 = i;
-	    p2 = j;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-	    if (obj == null) {
-		return false;
-	    }
-	    if (obj == this) {
-		return true;
-	    }
-	    if (!(obj instanceof Pair)) {
-		return false;
-	    }
-	    
-	    Pair p = (Pair) obj;
-	    if ( ((p.p1 == this.p1) && (p.p2 == this.p2)) || ((p.p1 == this.p2) && (p.p2 == this.p1)) ) {
-		return true;
-	    }
-	    return false;
-	}
-
-	public int hashCode() {
-	    return p1 * p2;
-	}
-    }
-
     private HashMap<Pair, Integer> afTable;
     
     public AFTable() {
@@ -48,7 +15,7 @@ public class AFTable {
     }
 
     // increment by 1
-    public void increment(int partition1, int partition2) {
+    public synchronized void increment(int partition1, int partition2) {
 	Pair p = new Pair(partition1, partition2);
 	Integer i = afTable.get(p);
 	if (i == null) {
@@ -56,6 +23,24 @@ public class AFTable {
 	} else {
 	    afTable.put(p, new Integer(i.intValue() + 1));
 	}
+    }
+
+    public synchronized HashMap<String, Object> toJSONObject() {
+	HashMap<String, Object> ret = new HashMap<String, Object>();
+
+	Iterator it = afTable.iterator();
+	int i = 0;
+	while (it.hasNext()) {
+	    HashMap<String, Object> temp = new HashMap<String, Object>();
+	    Map.Entry kv = (Map.Entry) it.next();
+	    temp.put("af", kv.getValue());
+	    temp.put("p1", ((Pair) kv.getKey()).p1);
+	    temp.put("p2", ((Pair) kv.getKey()).p2);
+	    ret.put(Integer.toString(i), temp);
+	    i++;
+	}
+
+	return ret;
     }
 
 }

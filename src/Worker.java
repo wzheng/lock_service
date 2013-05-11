@@ -85,12 +85,12 @@ public class Worker implements Runnable {
             if (serverNum == this.server.getServerNumber()) {
                 this.server.lockR(key, tid);
                 String value = this.server.get(key);
-				if (value != null) {
-				    readSet.put(key, value);
-				} else {
-				    readSet.put(key, "");
-				}
-			readLocked.add(key);
+		if (value != null) {
+		    readSet.put(key, value);
+		} else {
+		    readSet.put(key, "");
+		}
+		readLocked.add(key);
             }
         }
 
@@ -124,17 +124,17 @@ public class Worker implements Runnable {
                 }
 
                 RPCRequest receivedReq = (RPCRequest) obj;
-				if (receivedReq.method.equals("abort")) {
-				    this.abort(rpcReq);
-				    return ;
-				} else {
-				    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
-				    Iterator rit = rset.entrySet().iterator();
-				    while (rit.hasNext()) {
-					Map.Entry kv = (Map.Entry) rit.next();
-					readSet.put((String) kv.getKey(), (String) kv.getValue());
-				    }
-				}
+		if (receivedReq.method.equals("abort")) {
+		    this.abort(rpcReq);
+		    return ;
+		} else {
+		    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
+		    Iterator rit = rset.entrySet().iterator();
+		    while (rit.hasNext()) {
+			Map.Entry kv = (Map.Entry) rit.next();
+			readSet.put((String) kv.getKey(), (String) kv.getValue());
+		    }
+		}
                 waitServers.remove(receivedReq.replyAddress);
             }
 
@@ -143,7 +143,7 @@ public class Worker implements Runnable {
 	    args.put("State", true);
             RPCRequest newReq = new RPCRequest("start-done", thisSA, tid, args);
 	    RPC.send(rpcReq.replyAddress, "start-done", "001", newReq.toJSONObject());
-
+	    
         } else {
             // reply to original server with read-set information
             ServerAddress thisSA = this.server.getAddress();

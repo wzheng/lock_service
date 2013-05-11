@@ -27,6 +27,7 @@ public class Server implements Runnable  {
     private boolean isMaster;
     private RPC rpc;
     private CommunicationQ queue;
+    private AFTable af;
 
     // static variables
     private static int MAX_THREADS = 2;
@@ -47,13 +48,8 @@ public class Server implements Runnable  {
             ServerAddress sa = (ServerAddress) servers_it.next();
             serverList.put(new Integer(sa.getServerNumber()), sa);
         }
-	
-	// Iterator<Integer> itr = config.getPartitions();
-        // while (itr.hasNext()) {
-        //     Integer i = (Integer) itr.next();
-        //     dataStore.addNewPartition(i);
-        // }
 
+	af = new AFTable();
         this.isConfiguring = false;
 
         numThreads = 0;
@@ -63,6 +59,10 @@ public class Server implements Runnable  {
         this.isMaster = isMaster;
 
 	this.activeWorkers = new HashMap<TransactionId, CommunicationQ>();
+    }
+
+    public HashMap<Integer, ServerAddress> getAllServers() {
+	return this.serverList;
     }
 
     public PartitionTable getPartitionTable() {
@@ -84,6 +84,10 @@ public class Server implements Runnable  {
 
     public ReconfigState getReconfigState() {
         return reconfigState;
+    }
+
+    public synchronized void setReconfigState(ReconfigState state) {
+        this.reconfigState = state;
     }
 
     public boolean isMaster() {

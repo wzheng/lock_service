@@ -8,18 +8,33 @@ import java.io.*;
 
 public class PartitionTable {
 
-    private HashMap<Integer, ServerAddress> table;
+    // partition -> server
+    public HashMap<Integer, ServerAddress> psTable;
+    // server -> partition
+    public HashMap<ServerAddress, ArrayList<Integer> > spTable;
+    
 
     public PartitionTable() {
-	table = new HashMap<Integer, ServerAddress>();
+	pstable = new HashMap<Integer, ServerAddress>();
+	spTable = new HashMap<ServerAddress, ArrayList<Integer> >();
     }
 
+    // this supports both adding partition and changing partition
+    // TODO: changing partitions?
     public void addPartition(int pNum, ServerAddress server) {
         Integer num = new Integer(pNum);
-	table.put(num, server);
+	psTable.put(num, server);
+	ArrayList<Integer> value = spTable.get(num);
+	if (value == null) {
+	    value = new ArrayList<Integer>();
+	}
+	value.add(num);
+	spTable.put(server, value);
     }
 
     public ServerAddress getServer(int pNum) {
 	return table.get(new Integer(pNum));
     }
+
+    
 }
