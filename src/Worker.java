@@ -59,14 +59,15 @@ public class Worker implements Runnable {
 
         while (write_set_it.hasNext()) {
             String key = (String) write_set_it.next();
-            int serverNum = this.server.hashKey(key);
+            int partNum = this.server.hashKey(key);
+	    ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
 
             // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress()) && serverNum != this.server.getServerNumber()) {
-                cohorts.add(this.server.getServerAddress(serverNum));
+            if (this.server.getAddress().equals(tid.getServerAddress()) && !sendSA.equals(this.server.getAddress())) {
+                cohorts.add(sendSA);
             }
 
-            if (serverNum == this.server.getServerNumber()) {
+            if (sendSA.equals(this.server.getAddress())) {
                 this.server.lockW(key, tid);
                 writeLocked.add(key);
 		writeSet.put(key, (String) txnContext.write_set.get(key));
@@ -75,14 +76,15 @@ public class Worker implements Runnable {
 
         while (read_set_it.hasNext()) {
             String key = (String) read_set_it.next();
-            int serverNum = this.server.hashKey(key);
-
+            int partNum = this.server.hashKey(key);
+	    ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
+	    
             // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress()) && serverNum != this.server.getServerNumber()) {
-            	cohorts.add(this.server.getServerAddress(serverNum));
+            if (this.server.getAddress().equals(tid.getServerAddress()) && !sendSA.equals(this.server.getAddress())) {
+            	cohorts.add(sendSA);
             }
 
-            if (serverNum == this.server.getServerNumber()) {
+            if (sendSA.equals(this.server.getAddress())) {
                 this.server.lockR(key, tid);
                 String value = this.server.get(key);
 		if (value != null) {
@@ -313,6 +315,8 @@ public class Worker implements Runnable {
 		    waitServers.remove(req.replyAddress);
 		}
             }
+
+	    // TODO: figure out best way to increment the AF table
 
 	    // reply to client
 	    HashMap<String, Object> args = new HashMap<String, Object>();

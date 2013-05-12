@@ -73,7 +73,7 @@ public class Server implements Runnable  {
 
     // For a certain key, returns the partition that key belongs to
     public int hashKey(String key) {
-        return (key.hashCode()) % (serverList.size());
+        return (key.hashCode()) % (this.table.numPartitions);
     }
 
     public AFTable getAF() {

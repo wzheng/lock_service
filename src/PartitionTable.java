@@ -12,11 +12,13 @@ public class PartitionTable {
     public HashMap<Integer, ServerAddress> psTable;
     // server -> partition
     public HashMap<ServerAddress, ArrayList<Integer> > spTable;
+    public int numPartitions;
     
 
     public PartitionTable() {
 	psTable = new HashMap<Integer, ServerAddress>();
 	spTable = new HashMap<ServerAddress, ArrayList<Integer> >();
+	numPartitions = 0;
     }
 
     // this supports both adding partition and changing partition
@@ -28,6 +30,7 @@ public class PartitionTable {
 	    ArrayList<Integer> values = new ArrayList<Integer>();
 	    values.add(num);
 	    spTable.put(server, values);
+	    numPartitions++;
 	} else {
 	    psTable.put(num, server);
 	    ArrayList<Integer> values = spTable.get(prevServer);
@@ -46,5 +49,19 @@ public class PartitionTable {
     public ServerAddress getServer(int pNum) {
 	return psTable.get(new Integer(pNum));
     }
-
+    
+    @Override
+    public String toString() {
+	String ret = new String("");
+	Iterator it = psTable.entrySet().iterator();
+	ret += "Start Table ---> ";
+	while (it.hasNext()) {
+	    Map.Entry entry = (Map.Entry) it.next();
+	    ret += ((Integer) entry.getKey()).toString();
+	    ret += " -> ";
+	    ret += ((ServerAddress) entry.getValue()).toString();
+	}
+	ret += " <--- End Table";
+	return ret;
+    }    
 }

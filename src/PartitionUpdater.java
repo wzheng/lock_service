@@ -81,7 +81,11 @@ public class PartitionUpdater implements Runnable {
 	// Wait for all of the current transactions to commit/abort
 
 	while (this.server.getNumWorkers() > 0) {
-	    Thread.sleep(50);
+	    try {
+		Thread.sleep(50);
+	    } catch (InterruptedException e) {
+		System.err.println("Thread interrupted");
+	    }
 	}
 
 	// Send/receive all partitions
