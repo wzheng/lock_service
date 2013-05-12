@@ -1,0 +1,19 @@
+.classpath
+.project
+oltpbench/bin/
+oltpbench//build/
+oltpbench/output.raw
+oltpbench/output.res
+oltpbench/.classpath
+
+## -------------------------------
+## Kate Swap Files
+## -------------------------------
+oltpbench/*.kate-swp
+oltpbench/.#kate-*
+
+## -------------------------------
+## Backup artifacts
+## -------------------------------
+oltpbench/~*
+oltpbench/*~

@@ -10,6 +10,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import com.oltpbenchmark.DBConnect;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
@@ -47,7 +48,7 @@ public class OrderStatus extends TPCCProcedure {
 	private PreparedStatement customerByName = null;
 
 
-	 public ResultSet run(Connection conn, Random gen,
+	 public ResultSet run(DBConnect conn, Random gen,
 				int terminalWarehouseID, int numWarehouses,
 				int terminalDistrictLowerID, int terminalDistrictUpperID,
 				TPCCWorker w) throws SQLException{
@@ -79,7 +80,7 @@ public class OrderStatus extends TPCCProcedure {
 	 }
 	
 	// attention duplicated code across trans... ok for now to maintain separate prepared statements
-			public Customer getCustomerById(int c_w_id, int c_d_id, int c_id, Connection conn)
+			public Customer getCustomerById(int c_w_id, int c_d_id, int c_id, DBConnect conn)
 					throws SQLException {
 		
 				payGetCust.setInt(1, c_w_id);
@@ -99,7 +100,7 @@ public class OrderStatus extends TPCCProcedure {
 			}
 	
 			private void orderStatusTransaction(int w_id, int d_id, int c_id,
-					String c_last, boolean c_by_name, Connection conn, TPCCWorker w) throws SQLException {
+					String c_last, boolean c_by_name, DBConnect conn, TPCCWorker w) throws SQLException {
 				int o_id = -1, o_carrier_id = -1;
 				Timestamp entdate;
 				ArrayList<String> orderLines = new ArrayList<String>();

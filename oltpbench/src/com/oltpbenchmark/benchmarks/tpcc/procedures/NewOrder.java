@@ -9,6 +9,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import com.oltpbenchmark.DBConnect;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
@@ -63,7 +64,7 @@ public class NewOrder extends TPCCProcedure {
 	private PreparedStatement stmtInsertOrderLine = null;
 	
     
-    public ResultSet run(Connection conn, Random gen,
+    public ResultSet run(DBConnect conn, Random gen,
 			int terminalWarehouseID, int numWarehouses,
 			int terminalDistrictLowerID, int terminalDistrictUpperID,
 			TPCCWorker w) throws SQLException {
@@ -122,7 +123,7 @@ public class NewOrder extends TPCCProcedure {
 
 	private void newOrderTransaction(int w_id, int d_id, int c_id,
 			int o_ol_cnt, int o_all_local, int[] itemIDs,
-			int[] supplierWarehouseIDs, int[] orderQuantities, Connection conn, TPCCWorker w)
+			int[] supplierWarehouseIDs, int[] orderQuantities, DBConnect conn, TPCCWorker w)
 			throws SQLException {
 		float c_discount, w_tax, d_tax = 0, i_price;
 		int d_next_o_id, o_id = -1, s_quantity;
