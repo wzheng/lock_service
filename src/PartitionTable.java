@@ -15,26 +15,36 @@ public class PartitionTable {
     
 
     public PartitionTable() {
-	pstable = new HashMap<Integer, ServerAddress>();
+	psTable = new HashMap<Integer, ServerAddress>();
 	spTable = new HashMap<ServerAddress, ArrayList<Integer> >();
     }
 
     // this supports both adding partition and changing partition
-    // TODO: changing partitions?
     public void addPartition(int pNum, ServerAddress server) {
         Integer num = new Integer(pNum);
-	psTable.put(num, server);
-	ArrayList<Integer> value = spTable.get(num);
-	if (value == null) {
-	    value = new ArrayList<Integer>();
+	ServerAddress prevServer = psTable.get(num);
+	if (prevServer == null) {
+	    psTable.put(num, server);
+	    ArrayList<Integer> values = new ArrayList<Integer>();
+	    values.add(num);
+	    spTable.put(server, values);
+	} else {
+	    psTable.put(num, server);
+	    ArrayList<Integer> values = spTable.get(prevServer);
+	    values.remove(num);
+	    spTable.put(prevServer, values);
+
+	    values = spTable.get(server);
+	    if (values == null) {
+		values = new ArrayList<Integer>();
+	    }
+	    values.add(num);
+	    spTable.put(server, values);
 	}
-	value.add(num);
-	spTable.put(server, value);
     }
 
     public ServerAddress getServer(int pNum) {
-	return table.get(new Integer(pNum));
+	return psTable.get(new Integer(pNum));
     }
 
-    
 }

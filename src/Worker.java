@@ -219,38 +219,77 @@ public class Worker implements Runnable {
         }
     }
 
+    // TODO: in the future, when there are machine failures/other failures, should
+    // have the option to reply "abort" instead of "commit-prepare-done"
+    public void commitPrepare(RPCRequest rpcReq) {
+	ServerAddress thisSA = this.server.getAddress();
+	HashMap<String, Object> args = new HashMap<String, Object>();
+	RPCRequest newReq = new RPCRequest("commit-prepare-done", thisSA, rpcReq.tid, args);
+	RPC.send(rpcReq.replyAddress, "commit-prepare-done", "001", newReq.toJSONObject());
+    }
+
     // TODO: write to log?
     public void commit(RPCRequest rpcReq) {
 	//System.out.println("Ready to commit");
 	
         // commit the transaction, release all locks held by the txn
         // write everything from write set to data store
-        Iterator it = writeSet.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry kv = (Map.Entry) it.next();
-	    //System.out.println((String) kv.getKey() + ": " + (String) kv.getValue());
-            this.server.put((String) kv.getKey(), (String) kv.getValue());
-        }
-
-        // release all locks
-        Iterator it1 = writeLocked.iterator();
-        while (it1.hasNext()) {
-            this.server.unlockW((String) it1.next(), rpcReq.tid);
-        }
-
-        Iterator it2 = readLocked.iterator();
-        while (it2.hasNext()) {
-            this.server.unlockR((String) it2.next(), rpcReq.tid);
-        }
-
-        // TODO: return read set to original server, exit thread
-        // OR: reply to replyAddress, exit
         if (this.server.getAddress().equals(rpcReq.tid.getServerAddress())) {
-            // sends "commit" to all servers
+            // sends "commit-prepare" to all servers
 	    ServerAddress thisSA = this.server.getAddress();
 
+	    // Phase 1 - commit prepare
             HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
             Iterator c_it = cohorts.iterator();
+            while (c_it.hasNext()) {
+
+                HashMap<String, Object> args = new HashMap<String, Object>();
+                RPCRequest newReq = new RPCRequest("commit-prepare", thisSA, rpcReq.tid, args);
+
+                ServerAddress sentServer = (ServerAddress) c_it.next();
+                RPC.send(sentServer, "commit-prepare", "001", newReq.toJSONObject());
+                waitServers.add(sentServer);
+            }
+
+            while (!waitServers.isEmpty()) {
+                Object obj = queue.get();
+
+                if (obj.equals("")) {
+                    //Thread.sleep(50);
+		    continue;
+                }
+
+                RPCRequest req = (RPCRequest) obj;
+		if (req.method.equals("abort")) {
+		    this.abort(rpcReq);
+		    return ;
+		} else if (req.method.equals("commit-prepare-done")) {
+		    waitServers.remove(req.replyAddress);
+		}
+            }
+
+	    // If it has reached this point, the transaction has to commit
+	    // Phase 2 - actual commit
+
+	    Iterator it = writeSet.entrySet().iterator();
+	    while (it.hasNext()) {
+		Map.Entry kv = (Map.Entry) it.next();
+		//System.out.println((String) kv.getKey() + ": " + (String) kv.getValue());
+		this.server.put((String) kv.getKey(), (String) kv.getValue());
+	    }
+
+	    // release all locks
+	    Iterator it1 = writeLocked.iterator();
+	    while (it1.hasNext()) {
+		this.server.unlockW((String) it1.next(), rpcReq.tid);
+	    }
+
+	    Iterator it2 = readLocked.iterator();
+	    while (it2.hasNext()) {
+		this.server.unlockR((String) it2.next(), rpcReq.tid);
+	    }
+
+            c_it = cohorts.iterator();
             while (c_it.hasNext()) {
 
                 HashMap<String, Object> args = new HashMap<String, Object>();
@@ -270,11 +309,9 @@ public class Worker implements Runnable {
                 }
 
                 RPCRequest req = (RPCRequest) obj;
-		if (req.method.equals("abort")) {
-		    this.abort(rpcReq);
-		    return ;
+		if (req.method.equals("commit-accept")) {
+		    waitServers.remove(req.replyAddress);
 		}
-                waitServers.remove(req.replyAddress);
             }
 
 	    // reply to client
@@ -286,15 +323,34 @@ public class Worker implements Runnable {
 	    this.done = true;
 
         } else {
+
+	    Iterator it = writeSet.entrySet().iterator();
+	    while (it.hasNext()) {
+		Map.Entry kv = (Map.Entry) it.next();
+		//System.out.println((String) kv.getKey() + ": " + (String) kv.getValue());
+		this.server.put((String) kv.getKey(), (String) kv.getValue());
+	    }
+
+	    // release all locks
+	    Iterator it1 = writeLocked.iterator();
+	    while (it1.hasNext()) {
+		this.server.unlockW((String) it1.next(), rpcReq.tid);
+	    }
+
+	    Iterator it2 = readLocked.iterator();
+	    while (it2.hasNext()) {
+		this.server.unlockR((String) it2.next(), rpcReq.tid);
+	    }
+
             // sends "ack" back to original server
             HashMap<String, Object> args = new HashMap<String, Object>();
             ServerAddress thisSA = this.server.getAddress();
 
             args.put("State", true);
 	    //args.put("Read Set", read_set);
-            RPCRequest newReq = new RPCRequest("commit-reply", thisSA, rpcReq.tid, args);
+            RPCRequest newReq = new RPCRequest("commit-accept", thisSA, rpcReq.tid, args);
 
-            RPC.send(rpcReq.replyAddress, "commit-reply", "001", newReq.toJSONObject());
+            RPC.send(rpcReq.replyAddress, "commit-accept", "001", newReq.toJSONObject());
 	    this.done = true;
         }
     }
@@ -353,9 +409,11 @@ public class Worker implements Runnable {
                 this.startTransaction(rpcReq);
             } else if (rpcReq.method.equals("abort")) {
                 this.abort(rpcReq);
+            } else if (rpcReq.method.equals("commit-prepare")) {
+                this.commitPrepare(rpcReq);
             } else if (rpcReq.method.equals("commit")) {
-                this.commit(rpcReq);
-            } else if (rpcReq.method.equals("deadlock")){
+		this.commit(rpcReq);
+	    } else if (rpcReq.method.equals("deadlock")){
             	this.processcmhMessage(rpcReq);
             }
         }

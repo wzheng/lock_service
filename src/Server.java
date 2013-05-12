@@ -11,7 +11,6 @@ public class Server implements Runnable  {
 
     private ServerAddress address;
     private LockTable lockTable;
-    private HashMap<Integer, PartitionTable.PartitionData> partitionTable;
     private Data dataStore;
     private HashMap<Integer, ServerAddress> serverList;
 
@@ -33,15 +32,15 @@ public class Server implements Runnable  {
     private static int MAX_THREADS = 2;
 
     public Server(ServerAddress address, CommunicationQ queue,
-		  HashMap<Integer, PartitionTable.PartitionData> config,
+		  PartitionTable config,
 		  boolean isMaster, ArrayList<ServerAddress> servers) {
 
         this.address = address;
         lockTable = new LockTable(address);
-        this.partitionTable = config;
         this.dataStore = new Data();
         this.queue = queue;
         this.serverList = new HashMap<Integer, ServerAddress>();
+	this.table = config;
 
         Iterator servers_it = servers.iterator();
         while (servers_it.hasNext()) {
@@ -49,13 +48,12 @@ public class Server implements Runnable  {
             serverList.put(new Integer(sa.getServerNumber()), sa);
         }
 
-	af = new AFTable();
         this.isConfiguring = false;
 
         numThreads = 0;
 
-        AF = new HashMap<Integer, Integer>();
-        reconfigState = ReconfigState.NONE;
+	af = new AFTable();
+        reconfigState = ReconfigState.READY;
         this.isMaster = isMaster;
 
 	this.activeWorkers = new HashMap<TransactionId, CommunicationQ>();
@@ -78,8 +76,8 @@ public class Server implements Runnable  {
         return (key.hashCode()) % (serverList.size());
     }
 
-    public HashMap<Integer, Integer> getAF() {
-        return AF;
+    public AFTable getAF() {
+        return af;
     }
 
     public ReconfigState getReconfigState() {
@@ -130,6 +128,18 @@ public class Server implements Runnable  {
         this.dataStore.put(key, value);
     }
 
+    public synchronized int getNumWorkers() {
+	return activeWorkers.size();
+    }
+
+    public HashMap<String, String> getPartitionData(int partition) {
+	return this.dataStore.getPartition(partition);
+    }
+
+    public void addPartitionData(int partition, HashMap<String, String> partitionData) {
+	this.dataStore.addPartition(partition, partitionData);
+    }
+
     // check for incoming requests, spawn new worker threads as necessary
     public void run() {
 
@@ -143,21 +153,19 @@ public class Server implements Runnable  {
             JSONRPC2Request reqIn = (JSONRPC2Request) in;
 
             //System.out.println("Server " + address.getServerName() + " received request for " + reqIn.getMethod());
-
-            // TODO: duplicate messages?
 	    
             String method = reqIn.getMethod();
             Map<String, Object> params = reqIn.getNamedParams();
             RPCRequest rpcReq = new RPCRequest(method, params);
 	    
             if (method.equals("start")) {
-		
+
+		// TODO: should not start a new worker once reconfig state is changed
                 CommunicationQ q = new CommunicationQ();
                 this.activeWorkers.put(rpcReq.tid, q);
                 (new Thread(new Worker(this, q))).start();
 
                 //System.out.println("Started new worker");
-
                 q.put(rpcReq);
 
             } else {

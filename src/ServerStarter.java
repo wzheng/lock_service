@@ -14,7 +14,7 @@ public class ServerStarter implements Runnable {
     private RPC rpc;
 
     public ServerStarter(ServerAddress sa, 
-			 HashMap<Integer, PartitionTable.PartitionData> config, 
+			 PartitionTable config, 
 			 boolean isMaster, 
 			 ArrayList<ServerAddress> servers) {
 
@@ -39,7 +39,7 @@ public class ServerStarter implements Runnable {
             } else {
 		//System.out.println("received something in ServerStarter");
                 serverQueue.put(req);
-                System.out.println("added " + req.toJSONString());
+                //System.out.println("added " + req.toJSONString());
             }
 
         }

@@ -23,4 +23,11 @@ public class Data {
 	return kvStore.get(new Integer(0)).put(key, value);
     }
 
+    public synchronized HashMap<String, String> getPartition(int partition) {
+	return kvStore.get(new Integer(partition));
+    }
+
+    public synchronized void addPartition(int partition, HashMap<String, String> partitionData) {
+	kvStore.put(new Integer(partition), partitionData);
+    }
 }
