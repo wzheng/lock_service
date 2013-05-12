@@ -26,6 +26,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import com.oltpbenchmark.DBConnect;
 import com.oltpbenchmark.WorkloadConfiguration;
 import com.oltpbenchmark.catalog.Catalog;
 import com.oltpbenchmark.catalog.Column;
@@ -34,7 +35,6 @@ import com.oltpbenchmark.types.DatabaseType;
 import com.oltpbenchmark.util.Histogram;
 import com.oltpbenchmark.util.SQLUtil;
 
-import com.oltpbenchmark.DBConnect;
 
 /**
  * 
@@ -51,6 +51,7 @@ public abstract class Loader {
     private final Histogram<String> tableSizes = new Histogram<String>(true); 
     
     public Loader(BenchmarkModule benchmark, DBConnect conn) {
+    //public Loader(BenchmarkModule benchmark, Connection c) {
         this.benchmark = benchmark;
     	this.conn = conn;
     	this.workConf = benchmark.getWorkloadConfiguration();
@@ -129,9 +130,9 @@ public abstract class Loader {
             if (LOG.isDebugEnabled())
                 LOG.debug(String.format("Updating %s auto-increment counter with value '%d'",
                                         catalog_col.fullName(), value));
-            //Statement stmt = this.conn.createStatement();
-            //boolean result = stmt.execute(sql);
-	    boolean result = conn.executeQuery(sql);
+            Statement stmt = this.conn.createStatement();
+            boolean result = stmt.execute(sql);
+            //boolean result = conn.executeQuery(sql);
             if (LOG.isDebugEnabled())
                 LOG.debug(String.format("%s => [%s]", sql, result));
         }

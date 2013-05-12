@@ -108,11 +108,11 @@ public class TPCCLoader extends Loader{
 
     protected void transRollback() {
 	if (outputFiles == false) {
-	    //try {
+	    try {
 	    conn.rollback();
-	    //} catch (SQLException se) {
-	    // 	LOG.debug(se.getMessage());
-	    // }
+	    } catch (SQLException se) {
+	     	LOG.debug(se.getMessage());
+	    }
 	} else {
 	    out.close();
 	}
@@ -120,12 +120,12 @@ public class TPCCLoader extends Loader{
 
     protected void transCommit() {
 	if (outputFiles == false) {
-	    //try {
+	    try {
 	    conn.commit();
-	    // } catch (SQLException se) {
-	    // 	LOG.debug(se.getMessage());
-	    // 	transRollback();
-	    // }
+	    } catch (SQLException se) {
+	     	LOG.debug(se.getMessage());
+	     	transRollback();
+	    }
 	} else {
 	    out.close();
 	}

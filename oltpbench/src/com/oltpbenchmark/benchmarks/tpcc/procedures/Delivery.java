@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Random;
 
+import com.oltpbenchmark.DBConnect;
 import com.oltpbenchmark.api.SQLStmt;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCConstants;
 import com.oltpbenchmark.benchmarks.tpcc.TPCCUtil;
@@ -50,7 +51,7 @@ public class Delivery extends TPCCProcedure {
     private PreparedStatement delivUpdateCustBalDelivCnt = null;
 
 	
-    public ResultSet run(Connection conn, Random gen,
+    public ResultSet run(DBConnect conn, Random gen,
 			 int terminalWarehouseID, int numWarehouses,
 			 int terminalDistrictLowerID, int terminalDistrictUpperID,
 			 TPCCWorker w) throws SQLException {
@@ -70,7 +71,7 @@ public class Delivery extends TPCCProcedure {
     }
     
 
-    private int deliveryTransaction(int w_id, int o_carrier_id, Connection conn, TPCCWorker w) throws SQLException {
+    private int deliveryTransaction(int w_id, int o_carrier_id, DBConnect conn, TPCCWorker w) throws SQLException {
 	
 	int d_id, c_id;
 	float ol_total;

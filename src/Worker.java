@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * This class implements a worker that is spawned every time a transaction
@@ -85,12 +86,12 @@ public class Worker implements Runnable {
             if (serverNum == this.server.getServerNumber()) {
                 this.server.lockR(key, tid);
                 String value = this.server.get(key);
-		if (value != null) {
-		    readSet.put(key, value);
-		} else {
-		    readSet.put(key, "");
-		}
-		readLocked.add(key);
+				if (value != null) {
+				    readSet.put(key, value);
+				} else {
+				    readSet.put(key, "");
+				}
+				readLocked.add(key);
             }
         }
 
@@ -129,10 +130,10 @@ public class Worker implements Runnable {
 		    return ;
 		} else {
 		    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
-		    Iterator rit = rset.entrySet().iterator();
+		    Iterator<Entry<String, String>> rit = rset.entrySet().iterator();
 		    while (rit.hasNext()) {
-			Map.Entry kv = (Map.Entry) rit.next();
-			readSet.put((String) kv.getKey(), (String) kv.getValue());
+			Map.Entry<String, String> kv = rit.next();
+			readSet.put(kv.getKey(), kv.getValue());
 		    }
 		}
                 waitServers.remove(receivedReq.replyAddress);
@@ -161,12 +162,12 @@ public class Worker implements Runnable {
     // TODO: write to log?
     public void abort(RPCRequest rpcReq) {
         // abort the transaction, release all locks held by the txn
-        Iterator it1 = writeLocked.iterator();
+        Iterator<String> it1 = writeLocked.iterator();
         while (it1.hasNext()) {
             this.server.unlockW((String) it1.next(), rpcReq.tid);
         }
 
-        Iterator it2 = readLocked.iterator();
+        Iterator<String> it2 = readLocked.iterator();
         while (it2.hasNext()) {
             this.server.unlockR((String) it2.next(), rpcReq.tid);
         }
@@ -225,20 +226,20 @@ public class Worker implements Runnable {
 	
         // commit the transaction, release all locks held by the txn
         // write everything from write set to data store
-        Iterator it = writeSet.entrySet().iterator();
+        Iterator<Entry<String, String>> it = writeSet.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry kv = (Map.Entry) it.next();
+            Map.Entry<String, String> kv = it.next();
 	    //System.out.println((String) kv.getKey() + ": " + (String) kv.getValue());
-            this.server.put((String) kv.getKey(), (String) kv.getValue());
+            this.server.put(kv.getKey(), kv.getValue());
         }
 
         // release all locks
-        Iterator it1 = writeLocked.iterator();
+        Iterator<String> it1 = writeLocked.iterator();
         while (it1.hasNext()) {
             this.server.unlockW((String) it1.next(), rpcReq.tid);
         }
 
-        Iterator it2 = readLocked.iterator();
+        Iterator<String> it2 = readLocked.iterator();
         while (it2.hasNext()) {
             this.server.unlockR((String) it2.next(), rpcReq.tid);
         }
@@ -250,7 +251,7 @@ public class Worker implements Runnable {
 	    ServerAddress thisSA = this.server.getAddress();
 
             HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
-            Iterator c_it = cohorts.iterator();
+            Iterator<ServerAddress> c_it = cohorts.iterator();
             while (c_it.hasNext()) {
 
                 HashMap<String, Object> args = new HashMap<String, Object>();
@@ -302,9 +303,9 @@ public class Worker implements Runnable {
     public void receive(RPCRequest req) {
         // received reads from another machine, update readSet
         HashMap<String, String> rcvdSet = (HashMap<String, String>) req.args;
-        Iterator it = rcvdSet.entrySet().iterator();
+        Iterator<Entry<String, String>> it = rcvdSet.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry kv = (Map.Entry) it.next();
+            Map.Entry<String, String> kv = it.next();
             this.readSet.put((String) kv.getKey(), (String) kv.getValue());
         }
     }

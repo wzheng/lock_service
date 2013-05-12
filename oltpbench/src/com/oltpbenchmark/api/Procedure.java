@@ -13,6 +13,7 @@ import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
+import com.oltpbenchmark.DBConnect;
 import com.oltpbenchmark.jdbc.AutoIncrementPreparedStatement;
 import com.oltpbenchmark.types.DatabaseType;
 
@@ -76,7 +77,7 @@ public abstract class Procedure {
      * @return
      * @throws SQLException
      */
-    public final PreparedStatement getPreparedStatement(Connection conn, SQLStmt stmt, Object...params) throws SQLException {
+    public final PreparedStatement getPreparedStatement(DBConnect conn, SQLStmt stmt, Object...params) throws SQLException {
         PreparedStatement pStmt = this.getPreparedStatementReturnKeys(conn, stmt, null);
         for (int i = 0; i < params.length; i++) {
             pStmt.setObject(i+1, params[i]);
@@ -94,7 +95,7 @@ public abstract class Procedure {
      * @return
      * @throws SQLException
      */
-    public final PreparedStatement getPreparedStatementReturnKeys(Connection conn, SQLStmt stmt, int[] is) throws SQLException {
+    public final PreparedStatement getPreparedStatementReturnKeys(DBConnect conn, SQLStmt stmt, int[] is) throws SQLException {
         assert(this.name_stmt_xref != null) : "The Procedure " + this + " has not been initialized yet!";
         PreparedStatement pStmt = this.prepardStatements.get(stmt);
         if (pStmt == null) {
@@ -124,7 +125,7 @@ public abstract class Procedure {
      * @param conn
      * @throws SQLException
      */
-    protected final void generateAllPreparedStatements(Connection conn) {
+    protected final void generateAllPreparedStatements(DBConnect conn) {
         for (Entry<String, SQLStmt> e : this.name_stmt_xref.entrySet()) { 
             SQLStmt stmt = e.getValue();
             try {

@@ -41,7 +41,7 @@ public class jdbcIO {
 
     public void insertOrder(ArrayList<String> statements, String ordrPrepStmt, Oorder oorder) {
 
-	try {
+	//try {
 		    
 	    ordrPrepStmt = ordrPrepStmt.replaceFirst("\\?", Integer.toString(oorder.o_w_id));
 	    ordrPrepStmt = ordrPrepStmt.replaceFirst("\\?", Integer.toString(oorder.o_d_id));
@@ -60,30 +60,30 @@ public class jdbcIO {
 
 	    statements.add(ordrPrepStmt);
 			
-	} catch (SQLException se) {
-	    throw new RuntimeException(se);
-	}
+	//} catch (SQLException se) {
+	//    throw new RuntimeException(se);
+	//}
 
     } // end insertOrder()
 
     public void insertNewOrder(ArrayList<String> statements, String nworPrepStmt, NewOrder new_order) {
 
-	try {
+	//try {
 	    nworPrepStmt = nworPrepStmt.replaceFirst("\\?", Integer.toString(new_order.no_w_id));
 	    nworPrepStmt = nworPrepStmt.replaceFirst("\\?", Integer.toString(new_order.no_d_id));
 	    nworPrepStmt = nworPrepStmt.replaceFirst("\\?", Integer.toString(new_order.no_o_id));
 
 	    statements.add(nworPrepStmt);
 
-	} catch (SQLException se) {
-	    throw new RuntimeException(se);
-	}
+	//} catch (SQLException se) {
+	//    throw new RuntimeException(se);
+	//}
 
     } // end insertNewOrder()
 
     public void insertOrderLine(ArrayList<String> statements, String orlnPrepStmt, OrderLine order_line) {
 
-	try {
+	//try {
 	    orlnPrepStmt = orlnPrepStmt.replaceFirst("\\?", Integer.toString(order_line.ol_w_id));
 	    orlnPrepStmt = orlnPrepStmt.replaceFirst("\\?", Integer.toString(order_line.ol_d_id));
 	    orlnPrepStmt = orlnPrepStmt.replaceFirst("\\?", Integer.toString(order_line.ol_o_id));
@@ -101,9 +101,9 @@ public class jdbcIO {
 	    orlnPrepStmt = orlnPrepStmt.replaceFirst("\\?", order_line.ol_dist_info);
 
 	    statements.add(orlnPrepStmt);
-	} catch (SQLException se) {
-	    throw new RuntimeException(se);
-	}
+	//} catch (SQLException se) {
+	//    throw new RuntimeException(se);
+	//}
 
     } // end insertOrderLine()
 

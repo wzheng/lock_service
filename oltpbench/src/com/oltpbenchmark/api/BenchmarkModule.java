@@ -35,6 +35,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import com.oltpbenchmark.DBConnect;
 import com.oltpbenchmark.WorkloadConfiguration;
 import com.oltpbenchmark.catalog.Catalog;
 import com.oltpbenchmark.catalog.Table;
@@ -42,7 +43,6 @@ import com.oltpbenchmark.types.DatabaseType;
 import com.oltpbenchmark.util.ClassUtil;
 import com.oltpbenchmark.util.ScriptRunner;
 
-import com.oltpbenchmark.DBConnect;
 
 /**
  * Base class for all benchmark implementations
@@ -109,16 +109,17 @@ public abstract class BenchmarkModule {
      * @throws SQLException
      */
     protected final DBConnect makeConnection() throws SQLException {
-        // Connection conn = DriverManager.getConnection(workConf.getDBConnection(),
+    //protected final Connection makeConnection() throws SQLException {
+        //Connection conn = DriverManager.getConnection(workConf.getDBConnection(),
         //                                               workConf.getDBUsername(),
         //                                               workConf.getDBPassword());
-        // Catalog.setSeparator(conn);
-        // this.last_connection = conn;
-        // return (conn);
-	String[] result = workConf.getDBConnection().split(":");
-	DBConnect conn = new DBConnect(result[0], Integer.parseInt(result[1]));
-	this.last_connection = conn;
-	return (conn);
+        //Catalog.setSeparator(conn);
+        //this.last_connection = conn;
+        //return (conn);
+		String[] result = workConf.getDBConnection().split(":");
+		DBConnect conn = new DBConnect(result[0], Integer.parseInt(result[1]));
+		this.last_connection = conn;
+		return (conn);
     }
     
     /**
@@ -126,6 +127,7 @@ public abstract class BenchmarkModule {
      * @return
      */
     protected final DBConnect getLastConnection() {
+    //protected final Connection getLastConnection() {
         return (this.last_connection);
     }
 
@@ -226,7 +228,7 @@ public abstract class BenchmarkModule {
     public final void createDatabase() {
         try {
             //Connection conn = this.makeConnection();
-	    DBConnect conn = this.makeConnection();
+        	DBConnect conn = this.makeConnection();
             this.createDatabase(this.workConf.getDBType(), conn);
             conn.close();
         } catch (SQLException ex) {
@@ -240,6 +242,7 @@ public abstract class BenchmarkModule {
      * objects (e.g., table, indexes, etc) needed for this benchmark 
      */
     public final void createDatabase(DatabaseType dbType, DBConnect conn) throws SQLException {
+    //public final void createDatabase(DatabaseType dbType, Connection conn) throws SQLException {
         try {
             File ddl = this.getDatabaseDDL(dbType);
             assert(ddl != null) : "Failed to get DDL for " + this;
@@ -258,6 +261,7 @@ public abstract class BenchmarkModule {
     public final void runScript(String script) {
         try {
             DBConnect conn = this.makeConnection();
+        	//Connection conn = this.makeConnection();
             ScriptRunner runner = new ScriptRunner(conn, true, true);
             File scriptFile= new File(script);
             runner.runScript(scriptFile);
@@ -310,7 +314,8 @@ public abstract class BenchmarkModule {
     public final void clearDatabase() {
         try {
             DBConnect conn = this.makeConnection();
-	    // TODO: are these necessary?
+            //Connection conn = this.makeConnection();
+            // TODO: are these necessary?
             //conn.setAutoCommit(false);
             //conn.setTransactionIsolation(workConf.getIsolationMode());
             // Statement st = conn.createStatement();
@@ -319,7 +324,7 @@ public abstract class BenchmarkModule {
             //     String sql = "DELETE FROM " + catalog_tbl.getEscapedName();
             //     st.execute(sql);
             // } // FOR
-            // conn.commit();
+             conn.commit();
 
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Unexpected error when trying to delete the %s database", this.benchmarkName), ex);

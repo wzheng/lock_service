@@ -28,7 +28,13 @@ public class LockTable {
     }
 
     public void lockW(String key, TransactionId tid) {
+    	long startTime = System.currentTimeMillis();
+    	long timeout = 500;
         while (true) {
+        	if (System.currentTimeMillis() - startTime > timeout){
+        		System.out.println("deadlock detected by timeout");
+        		break;
+        	}
             synchronized (this) {
                 TransactionId wtid = write_locks.get(key);
                 HashSet<TransactionId> rtid = read_locks.get(key);
@@ -70,7 +76,13 @@ public class LockTable {
     }
 
     public void lockR(String key, TransactionId tid) {
+    	long startTime = System.currentTimeMillis();
+    	long timeout = 500;
         while (true) {
+        	if (System.currentTimeMillis() - startTime > timeout) {
+        		System.out.println("deadlock detected by timeout");
+        		break;
+        	}
             synchronized (this) {
                 TransactionId wtid = write_locks.get(key);
                 if (wtid == null || wtid == tid) {
@@ -158,7 +170,7 @@ public class LockTable {
     
     /**
      * Checks if the current lock acquire operation is in deadlock.
-     * Sends a Chandy-Misra-Haas message to the process that .
+     * Sends a Chandy-Misra-Haas message to the processes that hold locks to processes in WFG.
      */
     public void cmhDeadlockInitiate(TransactionId tid){
     	

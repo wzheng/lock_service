@@ -10,6 +10,7 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import com.oltpbenchmark.DBConnect;
 import com.oltpbenchmark.LatencyRecord;
 import com.oltpbenchmark.Phase;
 import com.oltpbenchmark.WorkloadConfiguration;
@@ -30,7 +31,7 @@ public abstract class Worker implements Runnable {
 	
 	private final int id;
 	private final BenchmarkModule benchmarkModule;
-	protected final Connection conn;
+	protected final DBConnect conn;
 	protected final WorkloadConfiguration wrkld;
 	protected final TransactionTypes transactionTypes;
 	protected final Map<TransactionType, Procedure> procedures = new HashMap<TransactionType, Procedure>();
@@ -106,7 +107,7 @@ public abstract class Worker implements Runnable {
 	    return (this.benchmarkModule.rng());
 	}
 	
-	public final Connection getConnection() {
+	public final DBConnect getConnection() {
 	    return (this.conn);
 	}
 	public final int getRequests() {
@@ -337,12 +338,15 @@ public abstract class Worker implements Runnable {
                     }
                 }
     	    } // WHILE
+    	    
 	    } catch (SQLException ex) {
-            throw new RuntimeException(String.format("Unexpected error in %s when executing %s [%s]",
+    	    throw new RuntimeException(String.format("Unexpected error in %s when executing %s [%s]",
                                                      this.getName(), next, dbType), ex);
-        } 
+    	} 
         
-        return (next);
+    	return (next);
+    	    
+
 	}
 
 	/**
