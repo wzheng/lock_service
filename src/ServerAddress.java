@@ -47,4 +47,10 @@ public class ServerAddress {
     public int hashCode() {
 	return port;
     }
+
+    @Override
+    public String toString() {
+	return new String("<" + serverName + ", " + serverNumber + ", " + port + ">");
+    }
+
 }

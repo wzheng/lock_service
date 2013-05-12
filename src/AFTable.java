@@ -28,7 +28,7 @@ public class AFTable {
     public synchronized HashMap<String, Object> toJSONObject() {
 	HashMap<String, Object> ret = new HashMap<String, Object>();
 
-	Iterator it = afTable.iterator();
+	Iterator it = afTable.entrySet().iterator();
 	int i = 0;
 	while (it.hasNext()) {
 	    HashMap<String, Object> temp = new HashMap<String, Object>();

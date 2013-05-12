@@ -1,151 +1,279 @@
 import java.io.*;
 import java.util.*;
-import java.util.Map.Entry;
-
 import com.thetransactioncompany.jsonrpc2.*;
 
 /**
- * This class takes care of initiating partition transfers One server is the
- * master that takes care of reconfiguring
+ *  This class takes care of initiating partition transfers
+ *  One server is the master that takes care of reconfiguring
  */
 
 public class PartitionUpdater implements Runnable {
 
-	private Server server;
-	private ServerAddress thisSA;
-	private CommunicationQ queue;
-	private ReconfigState reconfigState;
-	private boolean isMaster;
+    private Server server;
+    private ServerAddress thisSA;
+    private CommunicationQ queue;
+    private ReconfigState reconfigState;
+    private boolean isMaster;
 
-	private HashMap<Integer, ServerAddress> servers;
+    private HashMap<Integer, ServerAddress> servers;
+    private PartitionTable table;
 
-	public PartitionUpdater(Server server, CommunicationQ queue) {
-		this.server = server;
-		this.queue = queue;
-		reconfigState = server.getReconfigState();
-		this.isMaster = server.isMaster();
-		this.servers = server.getAllServers();
-		thisSA = server.getAddress();
+    public PartitionUpdater(Server server, CommunicationQ queue) {
+        this.server = server;
+        this.queue = queue;
+        reconfigState = server.getReconfigState();
+        this.isMaster = server.isMaster();
+	this.servers = server.getAllServers();
+	thisSA = server.getAddress();
+	table = server.getPartitionTable();
+    }
+
+    // run the reconfiguration algorithm
+    // v.1: get the heaviest edge for now
+    public HashMap<Integer, ServerAddress> configAlgo(HashMap<Pair, Integer> input) {
+	int max = 0;
+	Pair max_pair = null;
+	Iterator it = input.entrySet().iterator();
+	while (it.hasNext()) {
+	    Map.Entry kv = (Map.Entry) it.next();
+	    int temp = ((Integer) kv.getValue()).intValue();
+	    if (max < temp) {
+		max = temp;
+		max_pair = (Pair) kv.getKey();
+	    }
 	}
 
-	// run the reconfiguration algorithm
-	public HashMap<Integer, ServerAddress> configAlgo(HashMap<Pair, Integer> input) {
-		// v.1: get the heaviest edge for now
-		int max = 0;
-		Pair max_pair = null;
-		Iterator it = input.entrySet().iterator();
+	HashMap<Integer, ServerAddress> ret = new HashMap<Integer, ServerAddress>();
+	if (max_pair != null) {
+	    // TODO: calculate a list of partition -> new server mapping
+	    Integer p1 = max_pair.p1;
+	    Integer p2 = max_pair.p2;
+
+	    ServerAddress s1 = table.psTable.get(p1);
+	    ServerAddress s2 = table.psTable.get(p2);
+
+	    if (!s1.equals(s2)) {
+		// look for a random partition from s1 to transfer to s2
+		ArrayList<Integer> l1 = table.spTable.get(s1);
+		Integer p3 = null;
+		for (int j = 0; j < l1.size(); j++) {
+		    if (!l1.get(j).equals(p1)) {
+			p3 = l1.get(j);
+			break;
+		    }
+		}
+
+		ret.put(p2, s1);
+		if (p3 != null) {
+		    // should always execute, we're assuming
+		    // # partitions > # servers
+		    ret.put(p3, s2);
+		}
+		return ret;
+	    }
+	}
+
+	return null;
+    }
+
+    public void changeLocalConfig(HashMap<Integer, ServerAddress> changes) {
+	this.server.setReconfigState(ReconfigState.CHANGE);
+	// Wait for all of the current transactions to commit/abort
+
+	while (this.server.getNumWorkers() > 0) {
+	    try {
+		Thread.sleep(50);
+	    } catch (InterruptedException e) {
+		System.err.println("Thread interrupted");
+	    }
+	}
+
+	// Send/receive all partitions
+	HashMap<Integer, ServerAddress> send = new HashMap<Integer, ServerAddress>();
+	HashMap<Integer, ServerAddress> receive = new HashMap<Integer, ServerAddress>();
+	Iterator it = changes.entrySet().iterator();
+	while (it.hasNext()) {
+	    Map.Entry entry = (Map.Entry) it.next();
+	    Integer partition = (Integer) entry.getKey();
+	    ServerAddress sa = (ServerAddress) entry.getValue();
+	    
+	    if (sa.equals(thisSA)) {
+		// needs to receive a partition
+		receive.put(partition, table.getServer(partition));
+	    } else if (table.getServer(partition).equals(thisSA)) {
+		// needs to send a partition
+		receive.put(partition, sa);
+	    }
+	}
+
+	while (!receive.isEmpty() && !send.isEmpty()) {
+	    
+	    if (!send.isEmpty()) {
+		Iterator send_it = send.entrySet().iterator();
+		while (send_it.hasNext()) {
+		    Map.Entry entry = (Map.Entry) send_it.next();
+		    Integer partition = (Integer) entry.getKey();
+		    ServerAddress sendSA = (ServerAddress) entry.getValue();
+		    HashMap<String, Object> args = new HashMap<String, Object>();
+		    args.put("Method", "Send");
+		    args.put("Partition", this.server.getPartitionData(partition.intValue()));
+		    args.put("Partition Number", partition);
+		    RPCRequest sendReq = new RPCRequest("reconfigure", thisSA, new TransactionId(thisSA, -1), args);
+		    RPC.send(sendSA, "reconfigure", "001", sendReq.toJSONObject());
+		}
+	    }
+
+	    while (!receive.isEmpty()) {
+		
+		Object obj = queue.get();
+		if (obj.equals("")) {
+		    continue;
+		}
+
+		RPCRequest receiveReq = (RPCRequest) obj;
+		HashMap<String, Object> args = (HashMap<String, Object>) receiveReq.args;
+		
+		if (args.get("Method").equals("Send")) {
+		    this.server.addPartitionData(((Long) args.get("Partition Number")).intValue(), (HashMap<String, String>) args.get("Partition"));
+		}
+		receive.remove((Integer) args.get("Partition Number"));
+	    }
+	}
+	
+	// Change server state
+	this.server.setReconfigState(ReconfigState.READY);
+    }
+
+    // master reconfiguration
+    public void configureMaster() {
+
+        // periodically contact all ther servers for AF information
+
+	while (true) {
+	    
+	    Iterator it = servers.entrySet().iterator();
+	    HashSet<ServerAddress> waitAddresses = new HashSet<ServerAddress>();
+	    while (it.hasNext()) {
+		Map.Entry kv = (Map.Entry) it.next();
+		if (!kv.getValue().equals(thisSA)) {
+		    waitAddresses.add((ServerAddress) kv.getValue());
+		    HashMap<String, Object> args = new HashMap<String, Object>();
+		    args.put("Method", "getAF");
+		    RPCRequest req = new RPCRequest("reconfigure", thisSA, new TransactionId(thisSA, -1), args);
+		    RPC.send((ServerAddress) kv.getValue(), "reconfigure", "001", req.toJSONObject());
+		}
+	    }
+
+	    HashMap<Pair, Integer> newAFTable = new HashMap<Pair, Integer>();
+	    
+	    while (!waitAddresses.isEmpty()) {
+		Object obj = queue.get();
+		if (obj.equals("")) {
+		    continue;
+		}
+		RPCRequest reqIn = (RPCRequest) obj;
+		HashMap<String, Object> replyArgs = (HashMap<String, Object>) reqIn.args;
+		if (replyArgs.get("Method").equals("getAF-reply")) {
+		    Iterator ra_it = replyArgs.entrySet().iterator();
+		    while (ra_it.hasNext()) {
+			Map.Entry entry = (Map.Entry) ra_it.next();
+			HashMap<String, Object> value = (HashMap<String, Object>) entry.getValue();
+			// aggregate the edge weights together
+			Pair newPair = new Pair((Integer) value.get("p1"), (Integer) value.get("p2"));
+			Integer i = newAFTable.get(newPair);
+			if (i == null) {
+			    newAFTable.put(newPair, (Integer) value.get("af"));
+			} else {
+			    newAFTable.put(newPair, (Integer) value.get("af") + i);
+			}
+			waitAddresses.remove(reqIn.replyAddress);
+		    }
+		}
+	    }
+	    
+	    HashMap<Integer, ServerAddress> newTable = this.configAlgo(newAFTable);
+
+	    if (!newTable.isEmpty()) {
+
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		Iterator newTable_it = newTable.entrySet().iterator();
+		while (newTable_it.hasNext()) {
+		    Map.Entry kv = (Map.Entry) newTable_it.next();
+		    ServerAddress sa = (ServerAddress) kv.getValue();
+		    HashMap<String, Object> temp = new HashMap<String, Object>();
+		    temp.put("Number", sa.getServerNumber());
+		    temp.put("Name", sa.getServerName());
+		    temp.put("Port", sa.getServerPort());
+		    args.put(((Integer) kv.getKey()).toString(), temp);
+		}
+
+		args.put("Method", "changeConfig");
+		
+		// a new configuration is available, send to all of the servers
 		while (it.hasNext()) {
-			Map.Entry kv = (Map.Entry) it.next();
-			int temp = ((Integer) kv.getValue()).intValue();
-			if (max < temp) {
-				max = temp;
-				max_pair = (Pair) kv.getKey();
-			}
+		    Map.Entry kv = (Map.Entry) it.next();
+		    if (!kv.getValue().equals(thisSA)) {
+			waitAddresses.add((ServerAddress) kv.getValue());
+			RPCRequest req = new RPCRequest("reconfigure", thisSA, new TransactionId(thisSA, -1), args);
+			RPC.send((ServerAddress) kv.getValue(), "reconfigure", "001", req.toJSONObject());
+		    }
 		}
 
-		HashMap<Integer, ServerAddress> ret = new HashMap<Integer, ServerAddress>();
-		if (max_pair != null) {
-			// TODO: calculate a list of partition -> new server mapping
-		}
-
+		this.changeLocalConfig(newTable);
+	    }
 	}
 
-	// master reconfiguration
-	public void configureMaster() {
+    }
 
-		// periodically contact all ther servers for AF information
+    // worker reconfiguration
+    public void configureWorker() {
 
-		while (true) {
+        while (true) {
 
-			Iterator<Entry<Integer, ServerAddress>> it = servers.entrySet()
-					.iterator();
-			HashSet<ServerAddress> waitAddresses = new HashSet<ServerAddress>();
-			while (it.hasNext()) {
-				Map.Entry<Integer, ServerAddress> kv = it.next();
-				if (!kv.getValue().equals(thisSA)) {
-					waitAddresses.add((ServerAddress) kv.getValue());
-					HashMap<String, Object> args = new HashMap<String, Object>();
-					args.put("Method", "getAF");
-					RPCRequest req = new RPCRequest("reconfigure", thisSA,
-							new TransactionId(thisSA, -1), args);
-					RPC.send((ServerAddress) kv.getValue(), "reconfigure",
-							"001", req.toJSONObject());
-				}
-			}
+            Object obj = queue.get();
+            if (obj.equals("")) {
+                continue;
+            }
 
-			HashMap<Pair, Integer> newAFTable = new HashMap<Pair, Integer>();
+            RPCRequest reqIn = (RPCRequest) obj;
+	    HashMap<String, Object> args = (HashMap<String, Object>) reqIn.args;
+	    if (args.get("Method").equals("getAF")) {
+		AFTable af = this.server.getAF();
+		HashMap<String, Object> reply_args = af.toJSONObject();
+		reply_args.put("Method", "getAF-reply");
+		RPCRequest retReq = new RPCRequest("reconfigure", thisSA, reqIn.tid, reply_args);
+		RPC.send(reqIn.replyAddress, "reconfigure", "001", retReq.toJSONObject());
 
-			while (!waitAddresses.isEmpty()) {
-				Object obj = queue.get();
-				if (obj.equals("")) {
-					continue;
-				}
-				RPCRequest reqIn = (RPCRequest) obj;
-				HashMap<String, Object> replyArgs = (HashMap<String, Object>) reqIn.args;
-				if (replyArgs.get("Method").equals("getAF-reply")) {
-					Iterator ra_it = replyArgs.iterator();
-					while (ra_it.hasNext()) {
-						// aggregate the edge weights together
-						Pair newPair = new Pair((Integer) ra_it.get("p1"),
-								(Integer) ra_it.get("p2"));
-						Integer i = newAFTable.get(newPair);
-						if (i == null) {
-							newAFTable.put(newPair, (Integer) ra_it.get("af"));
-						} else {
-							newAFTable.put(newPair, (Integer) ra_it.get("af")
-									+ i);
-						}
-						waitAddress.remove(reqIn.replyAddress);
-					}
-				}
-			}
+	    } else if (args.get("Method").equals("changeConfig")) {
+		// figure out the new configuration
+		args.remove("Method");
 
-			PartitionTable newTable = this.configAlgo(newAFTable);
-
-			if (newTable != null) {
-				// a new configuration is available, send to all of the servers
-
-			}
+		HashMap<Integer, ServerAddress> changes = new HashMap<Integer, ServerAddress>();
+		Iterator args_it = args.entrySet().iterator();
+		while (args_it.hasNext()) {
+		    Map.Entry entry = (Map.Entry) args_it.next();
+		    Integer partition = new Integer((String) entry.getKey());
+		    HashMap<String, Object> temp = (HashMap<String, Object>) entry.getValue();
+		    int number = ((Long) temp.get("Number")).intValue();
+		    String name = (String) temp.get("Name");
+		    int port = ((Long) temp.get("Port")).intValue();
+		    ServerAddress sa = new ServerAddress(number, name, port);
+		    changes.put(partition, sa);
 		}
 
+		this.changeLocalConfig(changes);
+	    }
+        }
+    }
+
+    public void run() {
+
+	if (this.isMaster) {
+	    this.configureMaster();
+	} else {
+	    this.configureWorker();
 	}
-
-	// worker reconfiguration
-	public void configureWorker(JSONRPC2Request request) {
-
-		while (true) {
-
-			Object obj = queue.get();
-			if (obj.equals("")) {
-				continue;
-			}
-
-			RPCRequest reqIn = (RPCRequest) obj;
-			HashMap<String, Object> args = (HashMap<String, Object>) obj.args;
-			if (args.get("Method").equals("getAF")) {
-
-				AFTable af = this.server.getAF();
-				HashMap<String, Object> args = af.toJSONObject();
-				args.put("Method", "getAF-reply");
-				RPCRequest retReq = new RPCRequest("reconfigure", thisSA,
-						reqIn.tid, args);
-				RPC.send(reqIn.replyAddress, "reconfigure", "001",
-						retReq.toJSONObject());
-
-			} else if (args.get("Method").equals("changeConfig")) {
-				this.server.set(ReconfigState.PREPARE);
-			}
-		}
-	}
-
-	public void run() {
-
-		if (this.isMaster) {
-			this.configureMaster();
-		} else {
-			this.configureWorker();
-		}
-
-	}
+	
+    }
 
 }

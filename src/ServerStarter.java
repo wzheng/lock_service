@@ -14,32 +14,32 @@ public class ServerStarter implements Runnable {
     private RPC rpc;
 
     public ServerStarter(ServerAddress sa, 
-			 HashMap<Integer, PartitionTable.PartitionData> config, 
+			 PartitionTable config, 
 			 boolean isMaster, 
 			 ArrayList<ServerAddress> servers) {
 
         serverQueue = new CommunicationQ();
+        puQueue = new CommunicationQ();
 
-        //puQueue = new CommunicationQ();
         server = new Server(sa, serverQueue, config, isMaster, servers);
-
-        //pu = new PartitionUpdater(server, puQueue);
+        pu = new PartitionUpdater(server, puQueue);
         rpc = new RPC(sa);
     }
 
     public void run() {
         (new Thread(server)).start();
+	(new Thread(pu)).start();
 
         while (true) {
 
             JSONRPC2Request req = rpc.receive();
 
             if (req.getMethod() == "reconfigure") {
-                //puQueue.put(req);
+                puQueue.put(req);
             } else {
 		//System.out.println("received something in ServerStarter");
                 serverQueue.put(req);
-                System.out.println("added " + req.toJSONString());
+                //System.out.println("added " + req.toJSONString());
             }
 
         }
