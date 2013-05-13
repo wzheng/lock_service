@@ -128,7 +128,8 @@ public class Worker implements Runnable {
             while (it.hasNext()) {
                 ServerAddress sa = (ServerAddress) it.next();
                 HashMap<String, Object> args = txnContext.toJSONObject();
-                waitServers.add(sa); 
+		args.put("Partition Version", new Integer(this.server.getPartitionTable().version));
+                waitServers.add(sa);
 
                 // TODO: what if packets are dropped?
                 RPCRequest newReq = new RPCRequest("start", thisSA, tid, args);
@@ -178,8 +179,10 @@ public class Worker implements Runnable {
 	    RPC.send(rpcReq.replyAddress, "start-done", "001", newReq.toJSONObject());
 	    
         } else {
+
             // reply to original server with read-set information
-	    if (writeSet.isEmpty() && readSet.isEmpty()) {
+	    Long version = (Long) ((HashMap<String, Object>) rpcReq.args).get("Partition Version");
+	    if (version.intValue() != this.server.getPartitionTable().version) {
 
                 HashMap<String, Object> args = new HashMap<String, Object>();
                 RPCRequest newReq = new RPCRequest("abort-reply", this.server.getAddress(), rpcReq.tid, args);

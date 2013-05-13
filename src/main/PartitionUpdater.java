@@ -108,14 +108,16 @@ public class PartitionUpdater implements Runnable {
 	    
 	    if (sa.equals(thisSA)) {
 		// needs to receive a partition
+		//System.out.println(thisSA + " needs to receive a partition " + partition);
 		receive.put(partition, table.getServer(partition));
 	    } else if (table.getServer(partition).equals(thisSA)) {
 		// needs to send a partition
-		receive.put(partition, sa);
+		//System.out.println(thisSA + " needs to send a partition " + partition);
+		send.put(partition, sa);
 	    }
 	}
-
-	while (!receive.isEmpty() && !send.isEmpty()) {
+	
+	while (!(receive.isEmpty() && send.isEmpty())) {
 	    
 	    if (!send.isEmpty()) {
 		Iterator send_it = send.entrySet().iterator();
@@ -127,10 +129,16 @@ public class PartitionUpdater implements Runnable {
 		    args.put("Method", "Send");
 		    args.put("Partition", this.server.getPartitionData(partition.intValue()));
 		    args.put("Partition Number", partition);
+
+		    //System.out.println(thisSA + ": partitions " + partition + " sent to " + sendSA);
+
 		    RPCRequest sendReq = new RPCRequest("reconfigure", thisSA, new TransactionId(thisSA, -1), args);
 		    RPC.send(sendSA, "reconfigure", "001", sendReq.toJSONObject());
 		}
+		send.clear();
 	    }
+
+	    //System.out.println(thisSA + " entering receive ");
 
 	    while (!receive.isEmpty()) {
 		
@@ -141,11 +149,18 @@ public class PartitionUpdater implements Runnable {
 
 		RPCRequest receiveReq = (RPCRequest) obj;
 		HashMap<String, Object> args = (HashMap<String, Object>) receiveReq.args;
+
+		System.out.println(thisSA + ": received something... " + args.get("Method"));
 		
 		if (args.get("Method").equals("Send")) {
-		    this.server.addPartitionData(((Long) args.get("Partition Number")).intValue(), (HashMap<String, String>) args.get("Partition"));
+		    int partition = ((Long) args.get("Partition Number")).intValue();
+		    HashMap<String, String> partitionData = (HashMap<String, String>) args.get("Partition");
+		    //System.out.println("Received partition " + partition + " data is " + partitionData);
+		    this.server.addPartitionData(partition, partitionData);
+		    receive.remove(new Integer(partition));
+		} else {
+		    queue.put(obj);
 		}
-		receive.remove((Integer) args.get("Partition Number"));
 	    }
 	}
 
@@ -155,6 +170,8 @@ public class PartitionUpdater implements Runnable {
 	    Map.Entry entry = (Map.Entry) it.next();
 	    this.server.getPartitionTable().addPartition(((Integer) entry.getKey()).intValue(), (ServerAddress) entry.getValue());
 	}
+
+	this.server.getPartitionTable().incrementVersion();
 
 	// Change server state
 	this.server.setReconfigState(ReconfigState.READY);
@@ -269,7 +286,7 @@ public class PartitionUpdater implements Runnable {
 		    }
 
 		    RPCRequest doneReq = (RPCRequest) obj;
-		    if (doneReq.method.equals("changeConfig-done")) {
+		    if (((HashMap<String, Object>) doneReq.args).get("Method").equals("changeConfig-done")) {
 			waitAddresses.remove(doneReq.replyAddress);
 		    }
 

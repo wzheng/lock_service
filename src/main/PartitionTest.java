@@ -24,7 +24,7 @@ public class PartitionTest {
 	JSONRPC2Request resp = rpc.receive();
 	HashMap<String, Object> params = (HashMap<String, Object>) resp.getNamedParams();
 	if (resp.getMethod().equals("abort-done")) {
-	    System.out.println("Transaction " + tidNum + " start is aborted");
+	    //System.out.println("Transaction " + tidNum + " start is aborted");
 	    return false;
 	} else if (resp.getMethod().equals("start-done")) {
 	    System.out.println("Transaction " + tidNum + " start is done");
@@ -33,10 +33,10 @@ public class PartitionTest {
 	return false;
     }
 
-    public static boolean commit(ServerAddress sa, 
-				 ServerAddress client, 
-				 int tidNum, 
-				 RPC rpc) {
+    public static HashMap<String, Object> commit(ServerAddress sa, 
+						 ServerAddress client, 
+						 int tidNum, 
+						 RPC rpc) {
 
 	TransactionId tid = new TransactionId(sa, tidNum);
 	RPCRequest newReq = new RPCRequest("commit", client, tid, new HashMap<String, Object>());
@@ -46,13 +46,13 @@ public class PartitionTest {
 
 	if (resp.getMethod().equals("abort-done")) {
 	    //System.out.println("Transaction " + tidNum + " commit is aborted");
-	    return false;
+	    return null;
 	} else if (resp.getMethod().equals("commit-done")) {
 	    HashMap<String, Object> args = (HashMap<String, Object>) resp.getNamedParams();
 	    System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
-	    return true;
+	    return ((HashMap<String, Object>) ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
 	}
-	return false;
+	return null;
     }
 
     public static void abort(ServerAddress sa, 
@@ -94,23 +94,23 @@ public class PartitionTest {
 	    
 	    int tid = seed;
 	    
-	    // do writes
 	    for (int i = 0; i < 50; i++) {
 
 		ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
 
+		// do writes
 		for (int j = 0; j < testKeys.size(); j++) {
 		    wset.put(testKeys.get(j).toString(), Integer.toString(random.nextInt(1000)));
 		}
 		
 		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
-		    System.out.println("Tries to start txn " + tid);
+		    System.out.println("Tries to start W txn " + tid);
 		}
 
-		if (Math.random() < 0.5) {
+		if (Math.random() < 0.5 || tid == 0) {
 		    // commit
 		    System.out.println("TID " + tid + " start commit");
-		    if (PartitionTest.commit(contact, address, tid, rpc)) {
+		    if (PartitionTest.commit(contact, address, tid, rpc) != null) {
 			Iterator map_it = wset.entrySet().iterator();
 			while (map_it.hasNext()) {
 			    Map.Entry entry = (Map.Entry) map_it.next();
@@ -126,22 +126,64 @@ public class PartitionTest {
 		
 		wset.clear();
 		tid++;
+
+		Iterator map_it = committedWrites.entrySet().iterator();
+		while (map_it.hasNext()) {
+		    Map.Entry entry = (Map.Entry) map_it.next();
+		    rset.put((String) entry.getKey(), "");
+		}
+
+		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
+		    //System.out.println("Tries to start R txn " + tid);
+		}
+
+		HashMap<String, Object> read = PartitionTest.commit(contact, address, tid, rpc);
+		if (read != null) {
+		    Iterator iter = committedWrites.entrySet().iterator();
+		    while (iter.hasNext()) {
+			Map.Entry entry = (Map.Entry) iter.next();
+			if (!read.containsKey(entry.getKey())) {
+			    System.out.println("committedWrites: " + committedWrites);
+			    System.out.println("read: " + read);
+			    System.out.println("1");
+			    System.exit(-1);
+			} else {
+			    if (!read.get(entry.getKey()).equals(entry.getValue())) {
+				System.out.println("committedWrites: " + committedWrites);
+				System.out.println("read: " + read);
+				System.out.println("2");
+				System.exit(-1);	
+			    } else {
+				read.remove(entry.getKey());
+			    }
+			}
+		    }
+		    if (!read.isEmpty()) {
+			System.out.println("committedWrites: " + committedWrites);
+			System.out.println("read: " + read);
+			System.out.println("3");
+			System.exit(-1);
+		    }
+		}
+		
+		rset.clear();
+		tid++;
 	    }
 
 	    // do reads
-	    wset.clear();
-	    tid++;
+	    // wset.clear();
+	    // tid++;
 
-	    Iterator map_it = committedWrites.entrySet().iterator();
-	    while (map_it.hasNext()) {
-		Map.Entry entry = (Map.Entry) map_it.next();
-		rset.put((String) entry.getKey(), "");
-	    }
+	    // Iterator map_it = committedWrites.entrySet().iterator();
+	    // while (map_it.hasNext()) {
+	    // 	Map.Entry entry = (Map.Entry) map_it.next();
+	    // 	rset.put((String) entry.getKey(), "");
+	    // }
 
-	    System.out.println("committedWrites is " + committedWrites);
-	    ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
-	    PartitionTest.startTxn(contact, address, tid, wset, rset, rpc);
-	    PartitionTest.commit(contact, address, tid, rpc);
+	    // System.out.println("committedWrites is " + committedWrites);
+	    // ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
+	    // PartitionTest.startTxn(contact, address, tid, wset, rset, rpc);
+	    // PartitionTest.commit(contact, address, tid, rpc);
 	}
 
     }
@@ -226,7 +268,7 @@ public class PartitionTest {
 	ArrayList<String> keySet2 = new ArrayList<String>();
 	keySet2.add("2");
 	keySet2.add("6");
-	PartitionTest.PartitionTester t2 = t.new PartitionTester(servers, 100, new ServerAddress(4, "T2", 8889), keySet2);
+	PartitionTest.PartitionTester t2 = t.new PartitionTester(servers, 1000, new ServerAddress(4, "T2", 8889), keySet2);
 
 	(new Thread(t1)).start();
 	(new Thread(t2)).start();

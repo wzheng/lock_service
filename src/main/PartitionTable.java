@@ -14,12 +14,14 @@ public class PartitionTable {
     // server -> partition
     public HashMap<ServerAddress, ArrayList<Integer> > spTable;
     public int numPartitions;
+    public int version;
     
 
     public PartitionTable() {
 	psTable = new HashMap<Integer, ServerAddress>();
 	spTable = new HashMap<ServerAddress, ArrayList<Integer> >();
 	numPartitions = 0;
+	version = 0;
     }
 
     // this supports both adding partition and changing partition
@@ -49,6 +51,10 @@ public class PartitionTable {
 
     public ServerAddress getServer(int pNum) {
 	return psTable.get(new Integer(pNum));
+    }
+
+    public synchronized void incrementVersion() {
+	version++;
     }
     
     @Override
