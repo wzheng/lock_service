@@ -137,6 +137,8 @@ public class Worker implements Runnable {
 
 	    // receive replies from all of the cohorts, reply to client
 
+	    HashSet<ServerAddress> receivedSA = new HashSet<ServerAddress>();
+
             while (!waitServers.isEmpty()) {
                 Object obj = queue.get();
 
@@ -146,9 +148,10 @@ public class Worker implements Runnable {
                 }
 
                 RPCRequest receivedReq = (RPCRequest) obj;
-		if (receivedReq.method.equals("abort")) {
-		    //System.out.println("Received abort in startTxn for tid " + rpcReq.tid.getTID());
+		if (receivedReq.method.equals("abort-reply")) {
+		    System.out.println("Received abort in startTxn for tid " + rpcReq.tid.getTID());		    
 		    this.cohorts.remove(receivedReq.replyAddress);
+		    this.cohorts = receivedSA;
 		    this.abort(rpcReq);
 		    return ;
 		} else if (receivedReq.method.equals("start-reply")) {
@@ -159,6 +162,7 @@ public class Worker implements Runnable {
 			Map.Entry<String, String> kv = rit.next();
 			readSet.put(kv.getKey(), kv.getValue());
 		    }
+		    receivedSA.add(receivedReq.replyAddress);
 		}
                 waitServers.remove(receivedReq.replyAddress);
             }

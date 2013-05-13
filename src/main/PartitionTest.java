@@ -30,7 +30,7 @@ public class PartitionTest {
 	    System.out.println("Transaction " + tidNum + " start is done");
 	    return true;
 	}
-	return true;
+	return false;
     }
 
     public static boolean commit(ServerAddress sa, 
@@ -52,7 +52,7 @@ public class PartitionTest {
 	    System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
 	    return true;
 	}
-	return true;
+	return false;
     }
 
     public static void abort(ServerAddress sa, 
@@ -104,10 +104,12 @@ public class PartitionTest {
 		}
 		
 		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
+		    System.out.println("Tries to start txn " + tid);
 		}
 
 		if (Math.random() < 0.5) {
 		    // commit
+		    System.out.println("TID " + tid + " start commit");
 		    if (PartitionTest.commit(contact, address, tid, rpc)) {
 			Iterator map_it = wset.entrySet().iterator();
 			while (map_it.hasNext()) {
@@ -117,8 +119,9 @@ public class PartitionTest {
 		    }
 		} else {
 		    // abort
-		    System.out.println("TID " + tid + " aborted ");
+		    System.out.println("TID " + tid + " start abort ");
 		    PartitionTest.abort(contact, address, tid, rpc);
+		    System.out.println("TID " + tid + " abort done ");
 		}
 		
 		wset.clear();

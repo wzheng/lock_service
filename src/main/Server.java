@@ -169,8 +169,13 @@ public class Server implements Runnable  {
 		if (this.reconfigState == ReconfigState.CHANGE) {
 		    // does not start new transactions during reconfiguration
 		    // send "abort" to original server
-		    RPCRequest newReq = new RPCRequest("abort", this.address, rpcReq.tid, new HashMap<String, Object>());
-		    RPC.send(rpcReq.replyAddress, "abort", "001", newReq.toJSONObject());
+		    if (rpcReq.tid.getServerAddress().equals(this.address)) {
+			RPCRequest newReq = new RPCRequest("abort-done", this.address, rpcReq.tid, new HashMap<String, Object>());
+			RPC.send(rpcReq.replyAddress, "abort-done", "001", newReq.toJSONObject());
+		    } else {
+			RPCRequest newReq = new RPCRequest("abort-reply", this.address, rpcReq.tid, new HashMap<String, Object>());
+			RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
+		    }
 		} else {
 		    CommunicationQ q = new CommunicationQ();
 		    this.activeWorkers.put(rpcReq.tid, q);
