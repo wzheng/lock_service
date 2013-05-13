@@ -35,7 +35,6 @@ public class Worker implements Runnable {
         this.server = server;
         this.queue = queue;
         txn = null;
-        //willCommit = false;
         cohorts = new HashSet<ServerAddress>();
         done = false;
 
@@ -59,31 +58,32 @@ public class Worker implements Runnable {
     }
     
     public void lockOneFromWriteSet(String key, TransactionId tid, TransactionContext txnContext){
-    	System.out.println("called lockOneFromWriteSet for key " + key + " and transaction " + tid.getTID());
+    	//System.out.println("called lockOneFromWriteSet for key " + key + " and transaction " + tid.getTID());
         int partNum = this.server.hashKey(key);
         ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
 
         // if coordinator
         if (this.server.getAddress().equals(tid.getServerAddress())) {
-        	partitions.add(new Integer(partNum));
-	        if (!sendSA.equals(this.server.getAddress())) {
-	        	cohorts.add(sendSA);
-	        }
+	    partitions.add(new Integer(partNum));
+	    if (!sendSA.equals(this.server.getAddress())) {
+		cohorts.add(sendSA);
+	    }
         }
 
         if (sendSA.equals(this.server.getAddress())) {
             this.server.lockW(key, tid);
             writeLocked.add(key);
-			Integer part = new Integer(partNum);
-			HashMap<String, String> temp = writeSet.get(part);
-			if (temp == null) {
-			    temp = new HashMap<String, String>();
-			}
-			temp.put(key, (String) txnContext.write_set.get(key));
-			writeSet.put(part, temp);
+	    Integer part = new Integer(partNum);
+	    HashMap<String, String> temp = writeSet.get(part);
+	    if (temp == null) {
+		temp = new HashMap<String, String>();
+	    }
+	    temp.put(key, (String) txnContext.write_set.get(key));
+	    writeSet.put(part, temp);
         }
     	
     }
+
     public void startTransaction(RPCRequest rpcReq) {
         TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
 
@@ -103,30 +103,30 @@ public class Worker implements Runnable {
         while (write_set_it.hasNext()) {
             String key = write_set_it.next();
             lockOneFromWriteSet(key, tid, txnContext);
-            /*
-            int partNum = this.server.hashKey(key);
-            ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
+            
+            // int partNum = this.server.hashKey(key);
+            // ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
 
-            // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress())) {
-            	partitions.add(new Integer(partNum));
-		        if (!sendSA.equals(this.server.getAddress())) {
-		        	cohorts.add(sendSA);
-		        }
-            }
+            // // if coordinator
+            // if (this.server.getAddress().equals(tid.getServerAddress())) {
+            // 	partitions.add(new Integer(partNum));
+	    // 	if (!sendSA.equals(this.server.getAddress())) {
+	    // 	    cohorts.add(sendSA);
+	    // 	}
+            // }
 
-            if (sendSA.equals(this.server.getAddress())) {
-                this.server.lockW(key, tid);
-                writeLocked.add(key);
-				Integer part = new Integer(partNum);
-				HashMap<String, String> temp = writeSet.get(part);
-				if (temp == null) {
-				    temp = new HashMap<String, String>();
-				}
-				temp.put(key, (String) txnContext.write_set.get(key));
-				writeSet.put(part, temp);
-	        }
-	        */
+            // if (sendSA.equals(this.server.getAddress())) {
+            //     this.server.lockW(key, tid);
+            //     writeLocked.add(key);
+	    // 	Integer part = new Integer(partNum);
+	    // 	HashMap<String, String> temp = writeSet.get(part);
+	    // 	if (temp == null) {
+	    // 	    temp = new HashMap<String, String>();
+	    // 	}
+	    // 	temp.put(key, (String) txnContext.write_set.get(key));
+	    // 	writeSet.put(part, temp);
+	    // }
+	        
         }
 
         while (read_set_it.hasNext()) {
@@ -206,8 +206,10 @@ public class Worker implements Runnable {
 			readSet.put(kv.getKey(), kv.getValue());
 		    }
 		    receivedSA.add(receivedReq.replyAddress);
+		    waitServers.remove(receivedReq.replyAddress);
+		} else {
+		    queue.put(obj);
 		}
-                waitServers.remove(receivedReq.replyAddress);
             }
 
 	    // reply to client
@@ -287,6 +289,8 @@ public class Worker implements Runnable {
 		if (req.method.equals("abort-reply")) {
 		    System.out.println("Tid " + rpcReq.tid.getTID() + " abort received");
 		    waitServers.remove(req.replyAddress);
+		} else {
+		    queue.put(obj);
 		}
             }
 
@@ -357,6 +361,8 @@ public class Worker implements Runnable {
 		    return ;
 		} else if (req.method.equals("commit-prepare-done")) {
 		    waitServers.remove(req.replyAddress);
+		} else {
+		    queue.put(obj);
 		}
             }
 
@@ -407,6 +413,8 @@ public class Worker implements Runnable {
                 RPCRequest req = (RPCRequest) obj;
 		if (req.method.equals("commit-accept")) {
 		    waitServers.remove(req.replyAddress);
+		} else {
+		    queue.put(obj);
 		}
             }
 

@@ -112,7 +112,7 @@ public class PartitionUpdater implements Runnable {
 		receive.put(partition, table.getServer(partition));
 	    } else if (table.getServer(partition).equals(thisSA)) {
 		// needs to send a partition
-		//System.out.println(thisSA + " needs to send a partition " + partition);
+		System.out.println(thisSA + " needs to send a partition " + partition + " " + this.server.getPartitionData(partition));
 		send.put(partition, sa);
 	    }
 	}
@@ -129,7 +129,7 @@ public class PartitionUpdater implements Runnable {
 		    args.put("Method", "Send");
 		    args.put("Partition", this.server.getPartitionData(partition.intValue()));
 		    args.put("Partition Number", partition);
-
+		    
 		    //System.out.println(thisSA + ": partitions " + partition + " sent to " + sendSA);
 
 		    RPCRequest sendReq = new RPCRequest("reconfigure", thisSA, new TransactionId(thisSA, -1), args);
@@ -155,7 +155,7 @@ public class PartitionUpdater implements Runnable {
 		if (args.get("Method").equals("Send")) {
 		    int partition = ((Long) args.get("Partition Number")).intValue();
 		    HashMap<String, String> partitionData = (HashMap<String, String>) args.get("Partition");
-		    //System.out.println("Received partition " + partition + " data is " + partitionData);
+		    System.out.println("Received partition " + partition + " data is " + partitionData);
 		    this.server.addPartitionData(partition, partitionData);
 		    receive.remove(new Integer(partition));
 		} else {
@@ -294,7 +294,7 @@ public class PartitionUpdater implements Runnable {
 	    }
 
 	    try {
-		Thread.sleep(2000);
+		Thread.sleep(5000);
 	    } catch (InterruptedException e) {
 
 	    }

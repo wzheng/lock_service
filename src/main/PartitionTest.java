@@ -170,20 +170,7 @@ public class PartitionTest {
 		tid++;
 	    }
 
-	    // do reads
-	    // wset.clear();
-	    // tid++;
-
-	    // Iterator map_it = committedWrites.entrySet().iterator();
-	    // while (map_it.hasNext()) {
-	    // 	Map.Entry entry = (Map.Entry) map_it.next();
-	    // 	rset.put((String) entry.getKey(), "");
-	    // }
-
-	    // System.out.println("committedWrites is " + committedWrites);
-	    // ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
-	    // PartitionTest.startTxn(contact, address, tid, wset, rset, rpc);
-	    // PartitionTest.commit(contact, address, tid, rpc);
+	    System.out.println("SUCCESS from seed " + seed);
 	}
 
     }

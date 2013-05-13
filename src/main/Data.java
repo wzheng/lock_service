@@ -13,15 +13,26 @@ public class Data {
 
     public Data() {
         kvStore = new HashMap<Integer, HashMap<String, String>>();
-	kvStore.put(new Integer(0), new HashMap<String, String>());
     }
 
     public synchronized String get(int partition, String key) {
-	return kvStore.get(new Integer(0)).get(key);
+	Integer partNum = new Integer(partition);
+	if (kvStore.containsKey(partNum)) {
+	    return kvStore.get(partNum).get(key);
+	} else {
+	    return "";
+	}
     }
 
-    public synchronized String put(int partition, String key, String value) {
-	return kvStore.get(new Integer(0)).put(key, value);
+    public synchronized void put(int partition, String key, String value) {
+	Integer partNum = new Integer(partition);
+	if (!kvStore.containsKey(partNum)) {
+	    HashMap<String, String> partitionData = new HashMap<String, String>();
+	    partitionData.put(key, value);
+	    kvStore.put(partNum, partitionData);
+	} else {
+	    kvStore.get(partNum).put(key, value);
+	}
     }
 
     public synchronized HashMap<String, String> getPartition(int partition) {
