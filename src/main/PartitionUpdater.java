@@ -243,7 +243,12 @@ public class PartitionUpdater implements Runnable {
 		    }
 		}
 
+		System.out.println(this.server.getAddress());
+		System.out.println("Before");
+		System.out.println(this.server.getPartitionTable());
 		this.changeLocalConfig(newTable);
+		System.out.println("After");
+		System.out.println(this.server.getPartitionTable());
 
 		// TODO: should not start the next reconfiguration until everyone has reconfigured
 		
@@ -318,12 +323,12 @@ public class PartitionUpdater implements Runnable {
 		    changes.put(partition, sa);
 		}
 
-		// System.out.println(this.server.getAddress());
-		// System.out.println("Before");
-		// System.out.println(this.server.getPartitionTable());
+		System.out.println(this.server.getAddress());
+		System.out.println("Before");
+		System.out.println(this.server.getPartitionTable());
 		this.changeLocalConfig(changes);
-		// System.out.println("After");
-		// System.out.println(this.server.getPartitionTable());
+		System.out.println("After");
+		System.out.println(this.server.getPartitionTable());
 		
 		// send response back to master
 		HashMap<String, Object> doneArgs = new HashMap<String, Object>();

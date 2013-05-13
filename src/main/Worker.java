@@ -143,8 +143,12 @@ public class Worker implements Runnable {
                 Object obj = queue.get();
 
                 if (obj.equals("")) {
-                    //Thread.sleep(50);
-                	continue;
+		    //System.out.println("Stuck");
+		    try {
+			Thread.sleep(100);
+		    } catch (InterruptedException e) {
+		    }
+		    continue;
                 }
 
                 RPCRequest receivedReq = (RPCRequest) obj;
@@ -175,14 +179,24 @@ public class Worker implements Runnable {
 	    
         } else {
             // reply to original server with read-set information
-            ServerAddress thisSA = this.server.getAddress();
-            HashMap<String, Object> args = new HashMap<String, Object>();
-            args.put("State", "OK");
-            args.put("Read Set", readSet);
-            RPCRequest newReq = new RPCRequest("start-reply", thisSA, tid, args);
+	    if (writeSet.isEmpty() && readSet.isEmpty()) {
 
-            RPC.send(rpcReq.replyAddress, "start-reply", "001", newReq.toJSONObject());
-            readSet.clear();
+                HashMap<String, Object> args = new HashMap<String, Object>();
+                RPCRequest newReq = new RPCRequest("abort-reply", this.server.getAddress(), rpcReq.tid, args);
+                RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
+		
+	    } else {
+
+		ServerAddress thisSA = this.server.getAddress();
+		HashMap<String, Object> args = new HashMap<String, Object>();
+		args.put("State", "OK");
+		args.put("Read Set", readSet);
+		RPCRequest newReq = new RPCRequest("start-reply", thisSA, tid, args);
+
+		RPC.send(rpcReq.replyAddress, "start-reply", "001", newReq.toJSONObject());
+		readSet.clear();
+
+	    }
         }
 
     }
@@ -230,7 +244,7 @@ public class Worker implements Runnable {
 
                 RPCRequest req = (RPCRequest) obj;
 		if (req.method.equals("abort-reply")) {
-		    //System.out.println("Tid " + rpcReq.tid.getTID() + " abort received");
+		    System.out.println("Tid " + rpcReq.tid.getTID() + " abort received");
 		    waitServers.remove(req.replyAddress);
 		}
             }
