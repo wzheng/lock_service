@@ -43,4 +43,16 @@ public class AFTable {
 	return ret;
     }
 
+    public String toString() {
+	String ret = new String();
+	Iterator it = afTable.entrySet().iterator();
+	ret += "Start AF Table --> \n";
+	while (it.hasNext()) {
+	    Map.Entry entry = (Map.Entry) it.next();
+	    ret += ((Pair) entry.getKey()).toString() + " " + ((Integer) entry.getValue()).toString() + "\n";
+	}
+	ret += " <-- End AF Table\n";
+	return ret;
+    }
+
 }

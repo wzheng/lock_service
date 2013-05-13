@@ -29,7 +29,13 @@ public class Pair {
 	return false;
     }
 
+    @Override
     public int hashCode() {
 	return p1 * p2;
+    }
+
+    @Override
+    public String toString() {
+	return ("( " + p1.toString() + ", " + p2.toString() + " )");
     }
 }

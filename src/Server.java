@@ -120,12 +120,12 @@ public class Server implements Runnable  {
         this.lockTable.unlockR(key, tid);
     }
 
-    public String get(String key) {
-        return this.dataStore.get(key);
+    public String get(int partition, String key) {
+        return this.dataStore.get(partition, key);
     }
 
-    public void put(String key, String value) {
-        this.dataStore.put(key, value);
+    public void put(int partition, String key, String value) {
+        this.dataStore.put(partition, key, value);
     }
 
     public synchronized int getNumWorkers() {
@@ -160,14 +160,20 @@ public class Server implements Runnable  {
 	    
             if (method.equals("start")) {
 
-		// TODO: should not start a new worker once reconfig state is changed
-                CommunicationQ q = new CommunicationQ();
-                this.activeWorkers.put(rpcReq.tid, q);
-                (new Thread(new Worker(this, q))).start();
-
-                //System.out.println("Started new worker");
-                q.put(rpcReq);
-
+		if (this.reconfigState == ReconfigState.CHANGE) {
+		    // does not start new transactions during reconfiguration
+		    // send "abort" to original server
+		    RPCRequest newReq = new RPCRequest("abort", this.address, rpcReq.tid, new HashMap<String, Object>());
+		    RPC.send(rpcReq.replyAddress, "abort", "001", newReq.toJSONObject());
+		} else {
+		    CommunicationQ q = new CommunicationQ();
+		    this.activeWorkers.put(rpcReq.tid, q);
+		    (new Thread(new Worker(this, q))).start();
+		    
+		    //System.out.println("Started new worker");
+		    q.put(rpcReq);
+		}
+		
             } else {
             	//System.out.println("Putting req " + method + " in queue " + rpcReq);
                 this.activeWorkers.get(rpcReq.tid).put(rpcReq);

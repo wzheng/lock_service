@@ -15,11 +15,11 @@ public class Data {
 	kvStore.put(new Integer(0), new HashMap<String, String>());
     }
 
-    public synchronized String get(String key) {
+    public synchronized String get(int partition, String key) {
 	return kvStore.get(new Integer(0)).get(key);
     }
 
-    public synchronized String put(String key, String value) {
+    public synchronized String put(int partition, String key, String value) {
 	return kvStore.get(new Integer(0)).put(key, value);
     }
 

@@ -140,6 +140,13 @@ public class PartitionUpdater implements Runnable {
 	    }
 	}
 	
+	// Change partition table
+	it = changes.entrySet().iterator();
+	while (it.hasNext()) {
+	    Map.Entry entry = (Map.Entry) it.next();
+	    this.server.getPartitionTable.
+	}
+
 	// Change server state
 	this.server.setReconfigState(ReconfigState.READY);
     }

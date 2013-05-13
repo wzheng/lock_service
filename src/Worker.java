@@ -14,7 +14,7 @@ public class Worker implements Runnable {
     private CommunicationQ queue;
     private TransactionContext txn;
     private HashMap<String, String> readSet;
-    private HashMap<String, String> writeSet;
+    private HashMap<Integer, HashMap<String, String> > writeSet;
 
     // local locks held
     private HashSet<String> readLocked;
@@ -26,6 +26,9 @@ public class Worker implements Runnable {
     // thread state
     private boolean done;
 
+    // for reconfiguration
+    private ArrayList<Integer> partitions;
+
     public Worker(Server server, CommunicationQ queue) {
         this.server = server;
         this.queue = queue;
@@ -34,13 +37,14 @@ public class Worker implements Runnable {
         cohorts = new HashSet<ServerAddress>();
         done = false;
 
-		this.writeLocked = new HashSet<String>();
-		this.readLocked = new HashSet<String>();
-		this.cohorts = new HashSet<ServerAddress>();
+	this.writeLocked = new HashSet<String>();
+	this.readLocked = new HashSet<String>();
+	this.cohorts = new HashSet<ServerAddress>();
 	
-		this.readSet = new HashMap<String, String>();
-		this.writeSet = new HashMap<String, String>();
-
+	this.readSet = new HashMap<String, String>();
+	this.writeSet = new HashMap<Integer, HashMap<String, String> >();
+	
+	this.partitions = new ArrayList<Integer>();
     }
 
     public void startTransaction(RPCRequest rpcReq) {
@@ -64,15 +68,24 @@ public class Worker implements Runnable {
 	    ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
 
             // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress()) && !sendSA.equals(this.server.getAddress())) {
-                cohorts.add(sendSA);
+            if (this.server.getAddress().equals(tid.getServerAddress())) {
+		partitions.add(new Integer(partNum));
+	        if (!sendSA.equals(this.server.getAddress())) {
+		    cohorts.add(sendSA);
+		}
             }
 
             if (sendSA.equals(this.server.getAddress())) {
                 this.server.lockW(key, tid);
                 writeLocked.add(key);
-		writeSet.put(key, (String) txnContext.write_set.get(key));
-            }
+		Integer part = new Integer(partNum);
+		HashMap<String, String> temp = writeSet.get(part);
+		if (temp == null) {
+		    temp = new HashMap<String, String>();
+		}
+		temp.put(key, (String) txnContext.write_set.get(key));
+		writeSet.put(part, temp);
+	    }
 	}
 
         while (read_set_it.hasNext()) {
@@ -81,19 +94,22 @@ public class Worker implements Runnable {
 	    ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
 	    
             // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress()) && !sendSA.equals(this.server.getAddress())) {
-            	cohorts.add(sendSA);
+            if (this.server.getAddress().equals(tid.getServerAddress())) {
+		partitions.add(new Integer(partNum));
+		if (!sendSA.equals(this.server.getAddress())) {
+		    cohorts.add(sendSA);
+		}
             }
 
             if (sendSA.equals(this.server.getAddress())) {
                 this.server.lockR(key, tid);
-                String value = this.server.get(key);
-				if (value != null) {
-				    readSet.put(key, value);
-				} else {
-				    readSet.put(key, "");
-				}
-				readLocked.add(key);
+                String value = this.server.get(partNum, key);
+		if (value != null) {
+		    readSet.put(key, value);
+		} else {
+		    readSet.put(key, "");
+		}
+		readLocked.add(key);
             }
         }
 
@@ -277,8 +293,12 @@ public class Worker implements Runnable {
 	    Iterator it = writeSet.entrySet().iterator();
 	    while (it.hasNext()) {
 		Map.Entry kv = (Map.Entry) it.next();
-		//System.out.println((String) kv.getKey() + ": " + (String) kv.getValue());
-		this.server.put((String) kv.getKey(), (String) kv.getValue());
+		Integer partition = (Integer) kv.getKey();
+		Iterator map_it = ((HashMap<String, String>) kv.getValue()).entrySet().iterator();
+		while (map_it.hasNext()) {
+		    Map.Entry pair = (Map.Entry) map_it.next();
+		    this.server.put(partition, (String) pair.getKey(), (String) pair.getValue());
+		}
 	    }
 
 	    // release all locks
@@ -318,6 +338,13 @@ public class Worker implements Runnable {
             }
 
 	    // TODO: figure out best way to increment the AF table
+	    if (partitions.size() > 1) {
+		for (int j = 0; j < partitions.size() - 1; j++) {
+		    for (int k = j; k < partitions.size(); k++) {
+			this.server.getAF().increment(partitions.get(j), partitions.get(k));
+		    }
+		}
+	    }
 
 	    // reply to client
 	    HashMap<String, Object> args = new HashMap<String, Object>();
@@ -332,8 +359,12 @@ public class Worker implements Runnable {
 	    Iterator it = writeSet.entrySet().iterator();
 	    while (it.hasNext()) {
 		Map.Entry kv = (Map.Entry) it.next();
-		//System.out.println((String) kv.getKey() + ": " + (String) kv.getValue());
-		this.server.put((String) kv.getKey(), (String) kv.getValue());
+		Integer partition = (Integer) kv.getKey();
+		Iterator map_it = ((HashMap<String, String>) kv.getValue()).entrySet().iterator();
+		while (map_it.hasNext()) {
+		    Map.Entry pair = (Map.Entry) map_it.next();
+		    this.server.put(partition, (String) pair.getKey(), (String) pair.getValue());
+		}
 	    }
 
 	    // release all locks
@@ -384,17 +415,17 @@ public class Worker implements Runnable {
     	int to = (Integer) args.get("to");
     	int from = (Integer) args.get("from");
     	if (initiator == to){
-    		System.out.println("Deadlock detected");
+	    System.out.println("Deadlock detected");
     	} else {
-    		// continue to send messages
-    		cmhProcessor.propagateMessage(initiator, req.tid, server.getWFG(req.tid));
+	    // continue to send messages
+	    cmhProcessor.propagateMessage(initiator, req.tid, server.getWFG(req.tid));
     	}
     }
     
     public void processcmhMessage(RPCRequest rpcReq){
         if (this.server.getAddress().equals(rpcReq.tid.getServerAddress())) {
-		    //ServerAddress thisSA = this.server.getAddress();
-	    	cmhDeadlockReceiveMessage(rpcReq);
+	    //ServerAddress thisSA = this.server.getAddress();
+	    cmhDeadlockReceiveMessage(rpcReq);
         }
     }
 

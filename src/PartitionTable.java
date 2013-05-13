@@ -54,14 +54,15 @@ public class PartitionTable {
     public String toString() {
 	String ret = new String("");
 	Iterator it = psTable.entrySet().iterator();
-	ret += "Start Table ---> ";
+	ret += "Start Table ---> \n";
 	while (it.hasNext()) {
 	    Map.Entry entry = (Map.Entry) it.next();
 	    ret += ((Integer) entry.getKey()).toString();
 	    ret += " -> ";
 	    ret += ((ServerAddress) entry.getValue()).toString();
+	    ret += "\n";
 	}
-	ret += " <--- End Table";
+	ret += " <--- End Table\n";
 	return ret;
     }    
 }

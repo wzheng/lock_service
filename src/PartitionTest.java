@@ -54,12 +54,14 @@ public class PartitionTest {
 	private int seed;
 	private RPC rpc;
 	private ServerAddress address;
+	private ArrayList<String> testKeys;
 
-	public PartitionTester(ArrayList<ServerAddress> servers, int seed, ServerAddress local_address) {
+	public PartitionTester(ArrayList<ServerAddress> servers, int seed, ServerAddress local_address, ArrayList<String> testKeys) {
 	    this.servers = servers;
 	    this.seed = seed;
 	    address = local_address;
 	    rpc = new RPC(address);
+	    this.testKeys = testKeys;
 	}
 
 	public void run() {
@@ -74,22 +76,9 @@ public class PartitionTest {
 	    
 	    // do writes
 	    for (int i = 0; i < 10; i++) {
-		ServerAddress contact = servers.get((int) (Math.random() * servers.size()));
-		String key = Integer.toString(seed + i);
-		String value = Integer.toString(i);
-		wset.put(key, value);
-		TPCTest.startTxn(contact, address, tid, wset, rset, rpc);
-		if (Math.random() < 0.5) {
-		    // commit
-		    TPCTest.commit(contact, address, tid, rpc);
-		    committedWrites.put(key, value);
-		} else {
-		    // abort
-		    TPCTest.abort(contact, address, tid, rpc);
-		    abortedWrites.put(key, "");
+		for (int j = 0; j < testKeys.size(); j++) {
+		    
 		}
-		tid += 1;
-		wset.clear();
 	    }
 
 	    // do reads
