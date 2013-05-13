@@ -248,6 +248,37 @@ public class PartitionUpdater implements Runnable {
 		}
 
 		this.changeLocalConfig(newTable);
+
+		// TODO: should not start the next reconfiguration until everyone has reconfigured
+		
+		it = servers.entrySet().iterator();
+		waitAddresses.clear();
+		while (it.hasNext()) {
+		    Map.Entry entry = (Map.Entry) it.next();
+		    if (!thisSA.equals(entry.getValue())) {
+			waitAddresses.add((ServerAddress) entry.getValue());
+		    }
+		}
+
+		while (!waitAddresses.isEmpty()) {
+			
+		    Object obj = queue.get();
+		    if (obj.equals("")) {
+			continue;
+		    }
+
+		    RPCRequest doneReq = (RPCRequest) obj;
+		    if (doneReq.method.equals("changeConfig-done")) {
+			waitAddresses.remove(doneReq.replyAddress);
+		    }
+
+		}
+	    }
+
+	    try {
+		Thread.sleep(2000);
+	    } catch (InterruptedException e) {
+
 	    }
 	}
 
@@ -291,6 +322,12 @@ public class PartitionUpdater implements Runnable {
 		}
 
 		this.changeLocalConfig(changes);
+		
+		// send response back to master
+		HashMap<String, Object> doneArgs = new HashMap<String, Object>();
+		doneArgs.put("Method", "changeConfig-done");
+		RPCRequest doneReq = new RPCRequest("reconfigure", thisSA, reqIn.tid, doneArgs);
+		RPC.send(reqIn.replyAddress, "reconfigure", "001", doneReq.toJSONObject());
 	    }
         }
     }

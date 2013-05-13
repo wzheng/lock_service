@@ -117,6 +117,7 @@ public class PartitionTest {
 		    }
 		} else {
 		    // abort
+		    System.out.println("TID " + tid + " aborted ");
 		    PartitionTest.abort(contact, address, tid, rpc);
 		}
 		
@@ -206,18 +207,17 @@ public class PartitionTest {
 
 	PartitionTest t = new PartitionTest();
 
-	ArrayList<String> keySet = new ArrayList<String>();
-	keySet.add("1");
-	keySet.add("5");
-	PartitionTest.PartitionTester t1 = t.new PartitionTester(servers, 10, new ServerAddress(3, "T1", 8888), keySet);
+	ArrayList<String> keySet1 = new ArrayList<String>();
+	keySet1.add("1");
+	keySet1.add("5");
+	PartitionTest.PartitionTester t1 = t.new PartitionTester(servers, 10, new ServerAddress(3, "T1", 8888), keySet1);
+
+	ArrayList<String> keySet2 = new ArrayList<String>();
+	keySet2.add("2");
+	keySet2.add("6");
+	PartitionTest.PartitionTester t2 = t.new PartitionTester(servers, 100, new ServerAddress(4, "T2", 8889), keySet2);
 
 	(new Thread(t1)).start();
-
-	keySet.clear();
-	keySet.add("2");
-	keySet.add("6");
-	PartitionTest.PartitionTester t2 = t.new PartitionTester(servers, 100, new ServerAddress(4, "T2", 8889), keySet);
-
 	(new Thread(t2)).start();
 
     }
