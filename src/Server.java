@@ -140,6 +140,10 @@ public class Server implements Runnable  {
 	this.dataStore.addPartition(partition, partitionData);
     }
 
+    public synchronized void threadDone(TransactionId tid) {
+	this.activeWorkers.remove(tid);
+    }
+
     // check for incoming requests, spawn new worker threads as necessary
     public void run() {
 

@@ -23,8 +23,8 @@ public class PartitionTest {
 	RPC.send(sa, "start", "001", newReq.toJSONObject());
 	JSONRPC2Request resp = rpc.receive();
 	HashMap<String, Object> params = (HashMap<String, Object>) resp.getNamedParams();
-	if (resp.getMethod().equals("abort")) {
-	    //System.out.println("Transaction " + tidNum + " start is aborted");
+	if (resp.getMethod().equals("abort-done")) {
+	    System.out.println("Transaction " + tidNum + " start is aborted");
 	    return false;
 	} else if (resp.getMethod().equals("start-done")) {
 	    //System.out.println("Transaction " + tidNum + " start is done");
@@ -103,24 +103,24 @@ public class PartitionTest {
 		    wset.put(testKeys.get(j).toString(), Integer.toString(random.nextInt(1000)));
 		}
 		
-		if (PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
-		    if (Math.random() < 0.5) {
-			// commit
-			if (PartitionTest.commit(contact, address, tid, rpc)) {
-			    Iterator map_it = wset.entrySet().iterator();
-			    while (map_it.hasNext()) {
-				Map.Entry entry = (Map.Entry) map_it.next();
-				committedWrites.put((String) entry.getKey(), (String) entry.getValue());
-			    }
+		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
+		}
+
+		if (Math.random() < 0.5) {
+		    // commit
+		    if (PartitionTest.commit(contact, address, tid, rpc)) {
+			Iterator map_it = wset.entrySet().iterator();
+			while (map_it.hasNext()) {
+			    Map.Entry entry = (Map.Entry) map_it.next();
+			    committedWrites.put((String) entry.getKey(), (String) entry.getValue());
 			}
-		    } else {
-			// abort
-			PartitionTest.abort(contact, address, tid, rpc);
 		    }
-		    
-		    wset.clear();
+		} else {
+		    // abort
+		    PartitionTest.abort(contact, address, tid, rpc);
 		}
 		
+		wset.clear();
 		tid++;
 	    }
 

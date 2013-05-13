@@ -15,6 +15,7 @@ public class Worker implements Runnable {
     private TransactionContext txn;
     private HashMap<String, String> readSet;
     private HashMap<Integer, HashMap<String, String> > writeSet;
+    private TransactionId txnId;
 
     // local locks held
     private HashSet<String> readLocked;
@@ -51,6 +52,7 @@ public class Worker implements Runnable {
         TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
 
 	//System.out.println("Start transaction " + rpcReq.tid.getTID());
+	txnId = rpcReq.tid;
 
         if (txn == null) {
             txn = txnContext;
@@ -144,6 +146,8 @@ public class Worker implements Runnable {
 
                 RPCRequest receivedReq = (RPCRequest) obj;
 		if (receivedReq.method.equals("abort")) {
+		    //System.out.println("Received abort in startTxn for tid " + rpcReq.tid.getTID());
+		    this.cohorts.remove(receivedReq.replyAddress);
 		    this.abort(rpcReq);
 		    return ;
 		} else {
@@ -196,6 +200,8 @@ public class Worker implements Runnable {
             HashSet<ServerAddress> waitServers = new HashSet<ServerAddress>();
 	    ServerAddress thisSA = this.server.getAddress();
 
+	    //System.out.println("Server " + thisSA + " cohorts: " + cohorts);
+
             Iterator<ServerAddress> it = cohorts.iterator();
             while (it.hasNext()) {
 
@@ -216,7 +222,10 @@ public class Worker implements Runnable {
                 }
 
                 RPCRequest req = (RPCRequest) obj;
-                waitServers.remove(req.replyAddress);
+		if (req.method.equals("abort-reply")) {
+		    //System.out.println("Tid " + rpcReq.tid.getTID() + " abort received");
+		    waitServers.remove(req.replyAddress);
+		}
             }
 
 	    // reply to client
@@ -231,6 +240,8 @@ public class Worker implements Runnable {
             HashMap<String, Object> args = new HashMap<String, Object>();
             ServerAddress thisSA = this.server.getAddress();
             args.put("State", true);
+
+	    System.out.println("Server " + thisSA + " abort received for tid " + rpcReq.tid.getTID());
 
             RPCRequest newReq = new RPCRequest("abort-reply", thisSA, rpcReq.tid, args);
             RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
@@ -340,7 +351,7 @@ public class Worker implements Runnable {
 	    // TODO: figure out best way to increment the AF table
 	    if (partitions.size() > 1) {
 		for (int j = 0; j < partitions.size() - 1; j++) {
-		    for (int k = j; k < partitions.size(); k++) {
+		    for (int k = j+1; k < partitions.size(); k++) {
 			this.server.getAF().increment(partitions.get(j), partitions.get(k));
 		    }
 		}
@@ -453,6 +464,8 @@ public class Worker implements Runnable {
             	this.processcmhMessage(rpcReq);
             }
         }
+
+	this.server.threadDone(txnId);
 
     }
 

@@ -44,7 +44,7 @@ public class PartitionUpdater implements Runnable {
 	    }
 	}
 
-	System.out.println("Input: " + input + " --> " + max_pair);
+	//System.out.println("Input: " + input + " --> " + max_pair);
 
 	HashMap<Integer, ServerAddress> ret = new HashMap<Integer, ServerAddress>();
 	if (max_pair != null) {
