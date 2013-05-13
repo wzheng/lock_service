@@ -1,7 +1,7 @@
+package main;
 import java.io.*;
 import java.util.*;
 import java.lang.Math;
-
 import com.thetransactioncompany.jsonrpc2.*;
 
 // Test for re-partitioning

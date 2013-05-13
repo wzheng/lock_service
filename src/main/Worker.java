@@ -1,3 +1,4 @@
+package main;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
@@ -184,6 +185,7 @@ public class Worker implements Runnable {
     // TODO: write to log?
     public void abort(RPCRequest rpcReq) {
         // abort the transaction, release all locks held by the txn
+    	System.out.println("ABORTING");
         Iterator<String> it1 = writeLocked.iterator();
         while (it1.hasNext()) {
             this.server.unlockW((String) it1.next(), rpcReq.tid);

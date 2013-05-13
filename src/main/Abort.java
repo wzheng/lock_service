@@ -1,9 +1,11 @@
+package main;
 import java.io.*;
 
-public class Commit {
+public class Abort {
+
     public TransactionId tid;
 
-    public Commit(TransactionId tid) {
+    public Abort(TransactionId tid) {
         this.tid = tid;
     }
 }

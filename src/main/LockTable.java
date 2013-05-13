@@ -1,3 +1,4 @@
+package main;
 import java.io.*;
 import java.util.*;
 
@@ -32,6 +33,9 @@ public class LockTable {
     	long timeout = 500;
         while (true) {
         	if (System.currentTimeMillis() - startTime > timeout){
+        		RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
+        				new HashMap<String, Object>());
+        		RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
         		System.out.println("deadlock detected by timeout");
         		break;
         	}
@@ -80,6 +84,9 @@ public class LockTable {
     	long timeout = 500;
         while (true) {
         	if (System.currentTimeMillis() - startTime > timeout) {
+        		RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
+        				new HashMap<String, Object>());
+        		RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
         		System.out.println("deadlock detected by timeout");
         		break;
         	}
@@ -130,7 +137,7 @@ public class LockTable {
     }
 
     public synchronized void unlockW(String key, TransactionId tid) {
-        if (write_locks.get(key).equals(tid)) {
+        if (write_locks.get(key) != null && write_locks.get(key).equals(tid)) {
             write_locks.remove(key);
             // updateState(tid, key, true);
         }

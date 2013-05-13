@@ -8,13 +8,16 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 
+import main.*;
+
+
 import com.mysql.jdbc.Connection;
 
 public class DBConnect {
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
-
+    private RPC rpc;
     
     public DBConnect(String url, int port) {
 		try {
@@ -31,11 +34,13 @@ public class DBConnect {
     }
 
     public void commit() throws SQLException {
+    	System.out.println("committing");
     	this.out.println("Commit");
     }
 
 
     public boolean executeQuery(String sql) {
+    	System.out.println("executing: " + sql);
 		this.out.println("Start");
 		this.out.println(sql);
 		this.out.println("End");
@@ -52,11 +57,12 @@ public class DBConnect {
     }
 
     public void rollback() throws SQLException {
+    	System.out.println("aborting");
     	this.out.println("Rollback");
     }
 
     public void close() throws SQLException {
-
+    	System.out.println("closing");
     }
 
     public void executeBatch(ArrayList<String> sqlStatements) {
@@ -64,7 +70,6 @@ public class DBConnect {
     }
 
 	public Statement createStatement() {
-
 		return null;
 	}
 
