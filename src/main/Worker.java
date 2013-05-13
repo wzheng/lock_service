@@ -149,7 +149,7 @@ public class Worker implements Runnable {
 
                 RPCRequest receivedReq = (RPCRequest) obj;
 		if (receivedReq.method.equals("abort-reply")) {
-		    System.out.println("Received abort in startTxn for tid " + rpcReq.tid.getTID());		    
+		    //System.out.println("Received abort in startTxn for tid " + rpcReq.tid.getTID());		    
 		    this.cohorts.remove(receivedReq.replyAddress);
 		    this.cohorts = receivedSA;
 		    this.abort(rpcReq);
@@ -297,7 +297,7 @@ public class Worker implements Runnable {
                 }
 
                 RPCRequest req = (RPCRequest) obj;
-		if (req.method.equals("abort")) {
+		if (req.method.equals("abort-reply")) {
 		    this.abort(rpcReq);
 		    return ;
 		} else if (req.method.equals("commit-prepare-done")) {
