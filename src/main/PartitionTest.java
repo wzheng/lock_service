@@ -212,6 +212,14 @@ public class PartitionTest {
 	PartitionTest.PartitionTester t1 = t.new PartitionTester(servers, 10, new ServerAddress(3, "T1", 8888), keySet);
 
 	(new Thread(t1)).start();
+
+	keySet.clear();
+	keySet.add("2");
+	keySet.add("6");
+	PartitionTest.PartitionTester t2 = t.new PartitionTester(servers, 100, new ServerAddress(4, "T2", 8889), keySet);
+
+	(new Thread(t2)).start();
+
     }
 
 }

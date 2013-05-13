@@ -151,8 +151,9 @@ public class Worker implements Runnable {
 		    this.cohorts.remove(receivedReq.replyAddress);
 		    this.abort(rpcReq);
 		    return ;
-		} else {
+		} else if (receivedReq.method.equals("start-reply")) {
 		    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
+		    //System.out.println(receivedReq.method + " -> Read set is " + rset);
 		    Iterator<Entry<String, String>> rit = rset.entrySet().iterator();
 		    while (rit.hasNext()) {
 			Map.Entry<String, String> kv = rit.next();
@@ -185,7 +186,7 @@ public class Worker implements Runnable {
     // TODO: write to log?
     public void abort(RPCRequest rpcReq) {
         // abort the transaction, release all locks held by the txn
-    	System.out.println("ABORTING");
+    	//System.out.println("ABORTING");
         Iterator<String> it1 = writeLocked.iterator();
         while (it1.hasNext()) {
             this.server.unlockW((String) it1.next(), rpcReq.tid);
@@ -424,9 +425,9 @@ public class Worker implements Runnable {
     	CMHProcessor cmhProcessor = new CMHProcessor(req.tid);
     	System.out.println(req.args);
     	HashMap<String, Object> args = (HashMap<String, Object>) req.args;
-    	int initiator = (Integer) args.get("initiator");
-    	int to = (Integer) args.get("to");
-    	int from = (Integer) args.get("from");
+    	int initiator = ((Long) args.get("initiator")).intValue();
+    	int to = ((Long) args.get("to")).intValue();
+    	int from = ((Long) args.get("from")).intValue();
     	if (initiator == to){
 	    System.out.println("Deadlock detected");
     	} else {
