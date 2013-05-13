@@ -49,6 +49,41 @@ public class Worker implements Runnable {
 	this.partitions = new ArrayList<Integer>();
     }
 
+    public void getSingleLock(RPCRequest rpcReq){
+    	HashMap<String, Object> args = (HashMap<String, Object>) rpcReq.args;
+    	TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
+    	//String key = (String) args.get("write-lock");
+    	System.out.println("called getSingleLock via RPC");
+    	String key = (String) txnContext.write_set.keySet().toArray()[0];
+    	lockOneFromWriteSet(key, rpcReq.tid, txnContext);
+    }
+    
+    public void lockOneFromWriteSet(String key, TransactionId tid, TransactionContext txnContext){
+    	System.out.println("called lockOneFromWriteSet for key " + key + " and transaction " + tid.getTID());
+        int partNum = this.server.hashKey(key);
+        ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
+
+        // if coordinator
+        if (this.server.getAddress().equals(tid.getServerAddress())) {
+        	partitions.add(new Integer(partNum));
+	        if (!sendSA.equals(this.server.getAddress())) {
+	        	cohorts.add(sendSA);
+	        }
+        }
+
+        if (sendSA.equals(this.server.getAddress())) {
+            this.server.lockW(key, tid);
+            writeLocked.add(key);
+			Integer part = new Integer(partNum);
+			HashMap<String, String> temp = writeSet.get(part);
+			if (temp == null) {
+			    temp = new HashMap<String, String>();
+			}
+			temp.put(key, (String) txnContext.write_set.get(key));
+			writeSet.put(part, temp);
+        }
+    	
+    }
     public void startTransaction(RPCRequest rpcReq) {
         TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
 
@@ -66,30 +101,33 @@ public class Worker implements Runnable {
         Iterator<String> read_set_it = txnContext.read_set.keySet().iterator();
 
         while (write_set_it.hasNext()) {
-            String key = (String) write_set_it.next();
+            String key = write_set_it.next();
+            lockOneFromWriteSet(key, tid, txnContext);
+            /*
             int partNum = this.server.hashKey(key);
-	    ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
+            ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
 
             // if coordinator
             if (this.server.getAddress().equals(tid.getServerAddress())) {
-		partitions.add(new Integer(partNum));
-	        if (!sendSA.equals(this.server.getAddress())) {
-		    cohorts.add(sendSA);
-		}
+            	partitions.add(new Integer(partNum));
+		        if (!sendSA.equals(this.server.getAddress())) {
+		        	cohorts.add(sendSA);
+		        }
             }
 
             if (sendSA.equals(this.server.getAddress())) {
                 this.server.lockW(key, tid);
                 writeLocked.add(key);
-		Integer part = new Integer(partNum);
-		HashMap<String, String> temp = writeSet.get(part);
-		if (temp == null) {
-		    temp = new HashMap<String, String>();
-		}
-		temp.put(key, (String) txnContext.write_set.get(key));
-		writeSet.put(part, temp);
-	    }
-	}
+				Integer part = new Integer(partNum);
+				HashMap<String, String> temp = writeSet.get(part);
+				if (temp == null) {
+				    temp = new HashMap<String, String>();
+				}
+				temp.put(key, (String) txnContext.write_set.get(key));
+				writeSet.put(part, temp);
+	        }
+	        */
+        }
 
         while (read_set_it.hasNext()) {
             String key = (String) read_set_it.next();
@@ -429,7 +467,7 @@ public class Worker implements Runnable {
     	int to = ((Long) args.get("to")).intValue();
     	int from = ((Long) args.get("from")).intValue();
     	if (initiator == to){
-	    System.out.println("Deadlock detected");
+	    System.out.println("Deadlock detected by messages");
     	} else {
 	    // continue to send messages
 	    cmhProcessor.propagateMessage(initiator, req.tid, server.getWFG(req.tid));
@@ -462,9 +500,11 @@ public class Worker implements Runnable {
             } else if (rpcReq.method.equals("commit-prepare")) {
                 this.commitPrepare(rpcReq);
             } else if (rpcReq.method.equals("commit")) {
-		this.commit(rpcReq);
-	    } else if (rpcReq.method.equals("deadlock")){
+				this.commit(rpcReq);
+            } else if (rpcReq.method.equals("deadlock")){
             	this.processcmhMessage(rpcReq);
+            } else if (rpcReq.method.equals("single-lock")){
+            	this.getSingleLock(rpcReq);
             }
         }
 

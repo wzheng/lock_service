@@ -32,6 +32,18 @@ public class DeadlockTest {
 		}
 		return true;
 	}
+	
+	public static boolean getSingleLock(ServerAddress sa, ServerAddress client,
+			int tidNum, HashMap<String, String> write_set, RPC rpc){
+		TransactionId tid = new TransactionId(sa, tidNum);
+		HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
+		rpcArgs.put("Write Set", write_set);
+		RPCRequest newReq = new RPCRequest("start", client, tid, rpcArgs);
+		RPC.send(sa, "single-lock", "001", newReq.toJSONObject());
+		JSONRPC2Request resp = rpc.receive();
+		System.out.println("Response from single lock:\n"+resp.toJSONString());
+		return true;
+	}
 
 	public static boolean commit(ServerAddress sa, ServerAddress client,
 			int tidNum, RPC rpc) {
@@ -198,13 +210,25 @@ public class DeadlockTest {
 		HashMap<String, String> read_set = new HashMap<String, String>();
 
 		System.out.println("Started request for transaction 1");
-		write_set.put("a", "b");
-		write_set.put("b", "a");
-		DeadlockTest.startTxn(sa1, client, 1, write_set, read_set, rpc);
+
+		HashMap<String, String> write_set1a = new HashMap<String, String>();
+		write_set1a.put("a", "b");
+		DeadlockTest.startTxn(sa1, client, 1, write_set1a, read_set, rpc);
 		
 		System.out.println("Started request for transaction 2");
-		DeadlockTest.startTxn(sa2, client, 2, write_set, read_set, rpc);
-		//write_set.put("a", "c");
+		
+		HashMap<String, String> write_set2a = new HashMap<String, String>();
+		write_set2a.put("b", "a");
+		DeadlockTest.startTxn(sa2, client, 2, write_set2a, read_set, rpc);
+		
+		HashMap<String, String> write_set1b = new HashMap<String, String>();
+		write_set1b.put("b", "c");
+		DeadlockTest.getSingleLock(sa1, client, 1, write_set1b, rpc);
+		
+		HashMap<String, String> write_set2b = new HashMap<String, String>();
+		write_set2b.put("a", "d");
+		DeadlockTest.getSingleLock(sa2, client, 2, write_set2b, rpc);
+		
 		DeadlockTest.commit(sa1, client, 1, rpc);
 		DeadlockTest.commit(sa2, client, 2, rpc);
 

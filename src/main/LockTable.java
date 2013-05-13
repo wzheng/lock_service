@@ -72,6 +72,7 @@ public class LockTable {
                         ret.add(it.next());
                     }
                 }
+                System.out.println("locking " + key + " for tid " + tid.getTID() + " stuck");
                 wfg.put(tid, ret);
                 cmhDeadlockInitiate(tid);
                 //checkDeadLock(tid);
@@ -83,13 +84,13 @@ public class LockTable {
     	long startTime = System.currentTimeMillis();
     	long timeout = 500;
         while (true) {
-        	if (System.currentTimeMillis() - startTime > timeout) {
-        		RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
-        				new HashMap<String, Object>());
-        		RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
-        		System.out.println("deadlock detected by timeout");
-        		break;
-        	}
+//        	if (System.currentTimeMillis() - startTime > timeout) {
+//        		RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
+//        				new HashMap<String, Object>());
+//        		RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
+//        		System.out.println("deadlock detected by timeout");
+//        		break;
+//        	}
             synchronized (this) {
                 TransactionId wtid = write_locks.get(key);
                 if (wtid == null || wtid == tid) {
