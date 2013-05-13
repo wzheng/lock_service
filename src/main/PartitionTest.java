@@ -27,7 +27,7 @@ public class PartitionTest {
 	    System.out.println("Transaction " + tidNum + " start is aborted");
 	    return false;
 	} else if (resp.getMethod().equals("start-done")) {
-	    //System.out.println("Transaction " + tidNum + " start is done");
+	    System.out.println("Transaction " + tidNum + " start is done");
 	    return true;
 	}
 	return true;
