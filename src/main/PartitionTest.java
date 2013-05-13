@@ -30,7 +30,7 @@ public class PartitionTest {
 	    System.out.println("Transaction " + tidNum + " start is done");
 	    return true;
 	}
-	return true;
+	return false;
     }
 
     public static boolean commit(ServerAddress sa, 
@@ -52,7 +52,7 @@ public class PartitionTest {
 	    System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
 	    return true;
 	}
-	return true;
+	return false;
     }
 
     public static void abort(ServerAddress sa, 
@@ -104,10 +104,12 @@ public class PartitionTest {
 		}
 		
 		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
+		    System.out.println("Tries to start txn " + tid);
 		}
 
 		if (Math.random() < 0.5) {
 		    // commit
+		    System.out.println("TID " + tid + " start commit");
 		    if (PartitionTest.commit(contact, address, tid, rpc)) {
 			Iterator map_it = wset.entrySet().iterator();
 			while (map_it.hasNext()) {
@@ -117,8 +119,9 @@ public class PartitionTest {
 		    }
 		} else {
 		    // abort
-		    System.out.println("TID " + tid + " aborted ");
+		    System.out.println("TID " + tid + " start abort ");
 		    PartitionTest.abort(contact, address, tid, rpc);
+		    System.out.println("TID " + tid + " abort done ");
 		}
 		
 		wset.clear();
@@ -150,22 +153,30 @@ public class PartitionTest {
 	RPC rpc = new RPC(client);
 
 	// Re-partitioning Test
-	PartitionTable pt = new PartitionTable();
+	PartitionTable pt1 = new PartitionTable()
+;	PartitionTable pt2 = new PartitionTable();
+	PartitionTable pt3 = new PartitionTable();
 	int numPartitions = 12;
 	ServerAddress sa1 = new ServerAddress(0, "S0", 4444);
 	ServerAddress sa2 = new ServerAddress(1, "S1", 4445);
 	ServerAddress sa3 = new ServerAddress(2, "S2", 4446);
 
 	for (int i = 0; i < 4; i++) {
-	    pt.addPartition(i, sa1);
+	    pt1.addPartition(i, sa1);
+	    pt2.addPartition(i, sa1);
+	    pt3.addPartition(i, sa1);
 	}
 
 	for (int i = 4; i < 8; i++) {
-	    pt.addPartition(i, sa2);
+	    pt1.addPartition(i, sa2);
+	    pt2.addPartition(i, sa2);
+	    pt3.addPartition(i, sa2);
 	}
 
 	for (int i = 8; i < 12; i++) {
-	    pt.addPartition(i, sa3);
+	    pt1.addPartition(i, sa3);
+	    pt2.addPartition(i, sa3);
+	    pt3.addPartition(i, sa3);
 	}
 
  	ArrayList<ServerAddress> servers = new ArrayList<ServerAddress>();
@@ -173,9 +184,9 @@ public class PartitionTest {
 	servers.add(sa2);
 	servers.add(sa3);
 
-	ServerStarter s1 = new ServerStarter(sa1, pt, true, servers);
-	ServerStarter s2 = new ServerStarter(sa2, pt, false, servers);
-	ServerStarter s3 = new ServerStarter(sa3, pt, false, servers);
+	ServerStarter s1 = new ServerStarter(sa1, pt1, true, servers);
+	ServerStarter s2 = new ServerStarter(sa2, pt2, false, servers);
+	ServerStarter s3 = new ServerStarter(sa3, pt3, false, servers);
 
 	(new Thread(s1)).start();
 	(new Thread(s2)).start();

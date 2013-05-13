@@ -150,16 +150,11 @@ public class PartitionUpdater implements Runnable {
 	}
 
 	// Change partition table
-	System.out.println(this.server.getAddress());
-	System.out.println("Before");
-	System.out.println(this.server.getPartitionTable());
 	it = changes.entrySet().iterator();
 	while (it.hasNext()) {
 	    Map.Entry entry = (Map.Entry) it.next();
 	    this.server.getPartitionTable().addPartition(((Integer) entry.getKey()).intValue(), (ServerAddress) entry.getValue());
 	}
-	System.out.println("After");
-	System.out.println(this.server.getPartitionTable());
 
 	// Change server state
 	this.server.setReconfigState(ReconfigState.READY);
@@ -235,6 +230,7 @@ public class PartitionUpdater implements Runnable {
 		    args.put(((Integer) kv.getKey()).toString(), temp);
 		}
 
+		it = servers.entrySet().iterator();
 		args.put("Method", "changeConfig");
 		
 		// a new configuration is available, send to all of the servers
@@ -247,7 +243,12 @@ public class PartitionUpdater implements Runnable {
 		    }
 		}
 
+		System.out.println(this.server.getAddress());
+		System.out.println("Before");
+		System.out.println(this.server.getPartitionTable());
 		this.changeLocalConfig(newTable);
+		System.out.println("After");
+		System.out.println(this.server.getPartitionTable());
 
 		// TODO: should not start the next reconfiguration until everyone has reconfigured
 		
@@ -306,6 +307,7 @@ public class PartitionUpdater implements Runnable {
 
 	    } else if (args.get("Method").equals("changeConfig")) {
 		// figure out the new configuration
+		System.out.println(" -----> Server " + thisSA + " received changeConfig request");
 		args.remove("Method");
 
 		HashMap<Integer, ServerAddress> changes = new HashMap<Integer, ServerAddress>();
@@ -321,7 +323,12 @@ public class PartitionUpdater implements Runnable {
 		    changes.put(partition, sa);
 		}
 
+		System.out.println(this.server.getAddress());
+		System.out.println("Before");
+		System.out.println(this.server.getPartitionTable());
 		this.changeLocalConfig(changes);
+		System.out.println("After");
+		System.out.println(this.server.getPartitionTable());
 		
 		// send response back to master
 		HashMap<String, Object> doneArgs = new HashMap<String, Object>();
