@@ -176,7 +176,10 @@ public class Server implements Runnable  {
 		
             } else {
             	//System.out.println("Putting req " + method + " in queue " + rpcReq);
-                this.activeWorkers.get(rpcReq.tid).put(rpcReq);
+		CommunicationQ q = this.activeWorkers.get(rpcReq.tid);
+		if (q != null) {
+		    q.put(rpcReq);
+		}
             }
         }
     }

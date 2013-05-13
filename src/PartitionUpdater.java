@@ -34,6 +34,7 @@ public class PartitionUpdater implements Runnable {
 	int max = 0;
 	Pair max_pair = null;
 	Iterator it = input.entrySet().iterator();
+
 	while (it.hasNext()) {
 	    Map.Entry kv = (Map.Entry) it.next();
 	    int temp = ((Integer) kv.getValue()).intValue();
@@ -43,9 +44,11 @@ public class PartitionUpdater implements Runnable {
 	    }
 	}
 
+	System.out.println("Input: " + input + " --> " + max_pair);
+
 	HashMap<Integer, ServerAddress> ret = new HashMap<Integer, ServerAddress>();
 	if (max_pair != null) {
-	    // TODO: calculate a list of partition -> new server mapping
+
 	    Integer p1 = max_pair.p1;
 	    Integer p2 = max_pair.p2;
 
@@ -78,8 +81,10 @@ public class PartitionUpdater implements Runnable {
 
     public void changeLocalConfig(HashMap<Integer, ServerAddress> changes) {
 	this.server.setReconfigState(ReconfigState.CHANGE);
+	
+	System.out.println("Wait for all txns to stop");
+	
 	// Wait for all of the current transactions to commit/abort
-
 	while (this.server.getNumWorkers() > 0) {
 	    try {
 		Thread.sleep(50);
@@ -87,6 +92,8 @@ public class PartitionUpdater implements Runnable {
 		System.err.println("Thread interrupted");
 	    }
 	}
+
+	System.out.println("Send/receive partitions");
 
 	// Send/receive all partitions
 	HashMap<Integer, ServerAddress> send = new HashMap<Integer, ServerAddress>();
@@ -139,13 +146,18 @@ public class PartitionUpdater implements Runnable {
 		receive.remove((Integer) args.get("Partition Number"));
 	    }
 	}
-	
+
 	// Change partition table
+	System.out.println(this.server.getAddress());
+	System.out.println("Before");
+	System.out.println(this.server.getPartitionTable());
 	it = changes.entrySet().iterator();
 	while (it.hasNext()) {
 	    Map.Entry entry = (Map.Entry) it.next();
-	    this.server.getPartitionTable.
+	    this.server.getPartitionTable().addPartition(((Integer) entry.getKey()).intValue(), (ServerAddress) entry.getValue());
 	}
+	System.out.println("After");
+	System.out.println(this.server.getPartitionTable());
 
 	// Change server state
 	this.server.setReconfigState(ReconfigState.READY);
@@ -157,6 +169,8 @@ public class PartitionUpdater implements Runnable {
         // periodically contact all ther servers for AF information
 
 	while (true) {
+
+	    //System.out.println("Master: start ");
 	    
 	    Iterator it = servers.entrySet().iterator();
 	    HashSet<ServerAddress> waitAddresses = new HashSet<ServerAddress>();
@@ -178,29 +192,34 @@ public class PartitionUpdater implements Runnable {
 		if (obj.equals("")) {
 		    continue;
 		}
+
 		RPCRequest reqIn = (RPCRequest) obj;
 		HashMap<String, Object> replyArgs = (HashMap<String, Object>) reqIn.args;
 		if (replyArgs.get("Method").equals("getAF-reply")) {
 		    Iterator ra_it = replyArgs.entrySet().iterator();
 		    while (ra_it.hasNext()) {
 			Map.Entry entry = (Map.Entry) ra_it.next();
-			HashMap<String, Object> value = (HashMap<String, Object>) entry.getValue();
-			// aggregate the edge weights together
-			Pair newPair = new Pair((Integer) value.get("p1"), (Integer) value.get("p2"));
-			Integer i = newAFTable.get(newPair);
-			if (i == null) {
-			    newAFTable.put(newPair, (Integer) value.get("af"));
-			} else {
-			    newAFTable.put(newPair, (Integer) value.get("af") + i);
+			if (!entry.getKey().equals("Method")) {
+			    HashMap<String, Object> value = (HashMap<String, Object>) entry.getValue();
+			    // aggregate the edge weights together
+			    Pair newPair = new Pair( new Integer(((Long) value.get("p1")).intValue()), new Integer(((Long) value.get("p2")).intValue()));
+			    Integer i = newAFTable.get(newPair);
+			    if (i == null) {
+				newAFTable.put(newPair, new Integer(((Long) value.get("af")).intValue()));
+			    } else {
+				newAFTable.put(newPair, new Integer(((Long) value.get("p1")).intValue()) + i);
+			    }
 			}
-			waitAddresses.remove(reqIn.replyAddress);
 		    }
+		    waitAddresses.remove(reqIn.replyAddress);
 		}
 	    }
+
+	    //System.out.println("Master: received all AF info ");
 	    
 	    HashMap<Integer, ServerAddress> newTable = this.configAlgo(newAFTable);
 
-	    if (!newTable.isEmpty()) {
+	    if (newTable != null && !newTable.isEmpty()) {
 
 		HashMap<String, Object> args = new HashMap<String, Object>();
 		Iterator newTable_it = newTable.entrySet().iterator();
@@ -245,6 +264,7 @@ public class PartitionUpdater implements Runnable {
             RPCRequest reqIn = (RPCRequest) obj;
 	    HashMap<String, Object> args = (HashMap<String, Object>) reqIn.args;
 	    if (args.get("Method").equals("getAF")) {
+		//System.out.println("Worker: received AF request");
 		AFTable af = this.server.getAF();
 		HashMap<String, Object> reply_args = af.toJSONObject();
 		reply_args.put("Method", "getAF-reply");

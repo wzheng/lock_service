@@ -23,7 +23,7 @@ public class Pair {
 	}
 	    
 	Pair p = (Pair) obj;
-	if ( ((p.p1 == this.p1) && (p.p2 == this.p2)) || ((p.p1 == this.p2) && (p.p2 == this.p1)) ) {
+	if ( ((p.p1.equals(this.p1)) && (p.p2.equals(this.p2))) || ((p.p1.equals(this.p2)) && (p.p2.equals(this.p1))) ) {
 	    return true;
 	}
 	return false;

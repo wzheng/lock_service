@@ -34,8 +34,11 @@ public class ServerStarter implements Runnable {
 
             JSONRPC2Request req = rpc.receive();
 
-            if (req.getMethod() == "reconfigure") {
-                puQueue.put(req);
+            if (req.getMethod().equals("reconfigure")) {
+		String method = req.getMethod();
+		Map<String, Object> params = req.getNamedParams();
+		RPCRequest rpcReq = new RPCRequest(method, params);
+                puQueue.put(rpcReq);
             } else {
 		//System.out.println("received something in ServerStarter");
                 serverQueue.put(req);
