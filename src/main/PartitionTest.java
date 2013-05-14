@@ -34,10 +34,10 @@ public class PartitionTest {
     }
 
     public static HashMap<String, HashMap<String, String> > commit(ServerAddress sa, 
-						 ServerAddress client, 
-						 int tidNum, 
-						 RPC rpc) {
-
+								   ServerAddress client, 
+								   int tidNum, 
+								   RPC rpc) {
+	
 	TransactionId tid = new TransactionId(sa, tidNum);
 	RPCRequest newReq = new RPCRequest("commit", client, tid, new HashMap<String, Object>());
 	RPC.send(sa, "commit", "001", newReq.toJSONObject());
