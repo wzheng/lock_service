@@ -11,8 +11,8 @@ public class PartitionTest {
     public static boolean startTxn(ServerAddress sa,
 				   ServerAddress client,
 				   int tidNum, 
-				   HashMap<String, String> write_set, 
-				   HashMap<String, String> read_set, 
+				   HashMap<String, HashMap<String, String> > write_set, 
+				   HashMap<String, HashMap<String, String> > read_set, 
 				   RPC rpc) {
 	
 	TransactionId tid = new TransactionId(sa, tidNum);
@@ -33,7 +33,7 @@ public class PartitionTest {
 	return false;
     }
 
-    public static HashMap<String, Object> commit(ServerAddress sa, 
+    public static HashMap<String, HashMap<String, String> > commit(ServerAddress sa, 
 						 ServerAddress client, 
 						 int tidNum, 
 						 RPC rpc) {
@@ -50,7 +50,7 @@ public class PartitionTest {
 	} else if (resp.getMethod().equals("commit-done")) {
 	    HashMap<String, Object> args = (HashMap<String, Object>) resp.getNamedParams();
 	    //System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
-	    return ((HashMap<String, Object>) ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
+	    return ((HashMap<String, HashMap<String, String> >) ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
 	}
 	return null;
     }
@@ -86,11 +86,17 @@ public class PartitionTest {
 
 	public void run() {
 
+	    HashMap<String, HashMap<String, String> > actualWrites = new HashMap<String, HashMap<String, String> >();
+	    HashMap<String, HashMap<String, String> > actualReads = new HashMap<String, HashMap<String, String> >();
+
 	    HashMap<String, String> committedWrites = new HashMap<String, String>();
 	    HashMap<String, String> abortedWrites = new HashMap<String, String>();
 
 	    HashMap<String, String> wset = new HashMap<String, String>();
 	    HashMap<String, String> rset = new HashMap<String, String>();
+
+	    actualWrites.put("table", wset);
+	    actualReads.put("table", rset);
 	    
 	    int tid = seed;
 	    
@@ -102,8 +108,8 @@ public class PartitionTest {
 		for (int j = 0; j < testKeys.size(); j++) {
 		    wset.put(testKeys.get(j).toString(), Integer.toString(random.nextInt(1000)));
 		}
-		
-		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
+
+		while (!PartitionTest.startTxn(contact, address, tid, actualWrites, actualReads, rpc)) {
 		    //System.out.println("Tries to start W txn " + tid);
 		}
 
@@ -133,11 +139,12 @@ public class PartitionTest {
 		    rset.put((String) entry.getKey(), "");
 		}
 
-		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
+		while (!PartitionTest.startTxn(contact, address, tid, actualWrites, actualReads, rpc)) {
 		    //System.out.println("Tries to start R txn " + tid);
 		}
 
-		HashMap<String, Object> read = PartitionTest.commit(contact, address, tid, rpc);
+		HashMap<String, HashMap<String, String> > read_map = PartitionTest.commit(contact, address, tid, rpc);
+		HashMap<String, String> read = read_map.get("table");
 		if (read != null) {
 		    Iterator iter = committedWrites.entrySet().iterator();
 		    while (iter.hasNext()) {
@@ -221,29 +228,29 @@ public class PartitionTest {
 	(new Thread(s2)).start();
 	(new Thread(s3)).start();
 
-	HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
+	// HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
 
-	HashMap<String, String> write_set = new HashMap<String, String>();
-	HashMap<String, String> read_set = new HashMap<String, String>();
+	// HashMap<String, String> write_set = new HashMap<String, String>();
+	// HashMap<String, String> read_set = new HashMap<String, String>();
 
 
-	System.out.println("Started request for transaction 1");
-	write_set.put("a", "b");
-	write_set.put("b", "a");
-	PartitionTest.startTxn(sa1, client, 1, write_set, read_set, rpc);
-	PartitionTest.commit(sa1, client, 1, rpc);
+	// System.out.println("Started request for transaction 1");
+	// write_set.put("a", "b");
+	// write_set.put("b", "a");
+	// PartitionTest.startTxn(sa1, client, 1, write_set, read_set, rpc);
+	// PartitionTest.commit(sa1, client, 1, rpc);
 
-	System.out.println("Started request for transaction 2");
-	write_set.put("b", "c");
-	PartitionTest.startTxn(sa2, client, 2, write_set, read_set, rpc);
-	PartitionTest.abort(sa2, client, 2, rpc);
+	// System.out.println("Started request for transaction 2");
+	// write_set.put("b", "c");
+	// PartitionTest.startTxn(sa2, client, 2, write_set, read_set, rpc);
+	// PartitionTest.abort(sa2, client, 2, rpc);
 
-	System.out.println("Started request for transaction 3");
-	write_set.clear();
-	read_set.put("a", "");
-	read_set.put("b", "");
-	PartitionTest.startTxn(sa3, client, 3, write_set, read_set, rpc);
-	PartitionTest.commit(sa3, client, 3, rpc);
+	// System.out.println("Started request for transaction 3");
+	// write_set.clear();
+	// read_set.put("a", "");
+	// read_set.put("b", "");
+	// PartitionTest.startTxn(sa3, client, 3, write_set, read_set, rpc);
+	// PartitionTest.commit(sa3, client, 3, rpc);
 
 	PartitionTest t = new PartitionTest();
 

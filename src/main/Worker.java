@@ -14,13 +14,17 @@ public class Worker implements Runnable {
     private Server server;
     private CommunicationQ queue;
     private TransactionContext txn;
-    private HashMap<String, String> readSet;
-    private HashMap<Integer, HashMap<String, String> > writeSet;
+
+    // Table: { key value pairs }
+    private HashMap<String, HashMap<String, String> > readSet;
+    // Partition: {Table: { key value pairs } }
+    private HashMap<Integer, HashMap<String, HashMap<String, String> > > writeSet;
     private TransactionId txnId;
 
     // local locks held
-    private HashSet<String> readLocked;
-    private HashSet<String> writeLocked;
+    // <table, key>
+    private HashMap<String, HashSet<String> > readLocked;
+    private HashMap<String, HashSet<String> > writeLocked;
 
     // for coordinator
     private HashSet<ServerAddress> cohorts;
@@ -38,12 +42,12 @@ public class Worker implements Runnable {
         cohorts = new HashSet<ServerAddress>();
         done = false;
 
-	this.writeLocked = new HashSet<String>();
-	this.readLocked = new HashSet<String>();
+	this.writeLocked = new HashMap<String, HashSet<String> >();
+	this.readLocked = new HashMap<String, HashSet<String> >();
 	this.cohorts = new HashSet<ServerAddress>();
 	
-	this.readSet = new HashMap<String, String>();
-	this.writeSet = new HashMap<Integer, HashMap<String, String> >();
+	this.readSet = new HashMap<String, HashMap<String, String> >();
+	this.writeSet = new HashMap<Integer, HashMap<String, HashMap<String, String> > >();
 	
 	this.partitions = new ArrayList<Integer>();
     }
@@ -58,29 +62,29 @@ public class Worker implements Runnable {
     }
     
     public void lockOneFromWriteSet(String key, TransactionId tid, TransactionContext txnContext){
-    	//System.out.println("called lockOneFromWriteSet for key " + key + " and transaction " + tid.getTID());
-        int partNum = this.server.hashKey(key);
-        ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
+    	// //System.out.println("called lockOneFromWriteSet for key " + key + " and transaction " + tid.getTID());
+        // int partNum = this.server.hashKey(key);
+        // ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
 
-        // if coordinator
-        if (this.server.getAddress().equals(tid.getServerAddress())) {
-	    partitions.add(new Integer(partNum));
-	    if (!sendSA.equals(this.server.getAddress())) {
-		cohorts.add(sendSA);
-	    }
-        }
+        // // if coordinator
+        // if (this.server.getAddress().equals(tid.getServerAddress())) {
+	//     partitions.add(new Integer(partNum));
+	//     if (!sendSA.equals(this.server.getAddress())) {
+	// 	cohorts.add(sendSA);
+	//     }
+        // }
 
-        if (sendSA.equals(this.server.getAddress())) {
-            this.server.lockW(key, tid);
-            writeLocked.add(key);
-	    Integer part = new Integer(partNum);
-	    HashMap<String, String> temp = writeSet.get(part);
-	    if (temp == null) {
-		temp = new HashMap<String, String>();
-	    }
-	    temp.put(key, (String) txnContext.write_set.get(key));
-	    writeSet.put(part, temp);
-        }
+        // if (sendSA.equals(this.server.getAddress())) {
+        //     this.server.lockW(key, tid);
+        //     writeLocked.add(key);
+	//     Integer part = new Integer(partNum);
+	//     HashMap<String, String> temp = writeSet.get(part);
+	//     if (temp == null) {
+	// 	temp = new HashMap<String, String>();
+	//     }
+	//     temp.put(key, (String) txnContext.write_set.get(key));
+	//     writeSet.put(part, temp);
+        // }
     	
     }
 
@@ -96,62 +100,89 @@ public class Worker implements Runnable {
 
         TransactionId tid = rpcReq.tid;
 
-        Iterator<String> write_set_it = txnContext.write_set.keySet()
-                .iterator();
+        Iterator<String> write_set_it = txnContext.write_set.keySet().iterator();
         Iterator<String> read_set_it = txnContext.read_set.keySet().iterator();
 
         while (write_set_it.hasNext()) {
-            String key = write_set_it.next();
-            lockOneFromWriteSet(key, tid, txnContext);
-            
-            // int partNum = this.server.hashKey(key);
-            // ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
-
-            // // if coordinator
-            // if (this.server.getAddress().equals(tid.getServerAddress())) {
-            // 	partitions.add(new Integer(partNum));
-	    // 	if (!sendSA.equals(this.server.getAddress())) {
-	    // 	    cohorts.add(sendSA);
-	    // 	}
-            // }
-
-            // if (sendSA.equals(this.server.getAddress())) {
-            //     this.server.lockW(key, tid);
-            //     writeLocked.add(key);
-	    // 	Integer part = new Integer(partNum);
-	    // 	HashMap<String, String> temp = writeSet.get(part);
-	    // 	if (temp == null) {
-	    // 	    temp = new HashMap<String, String>();
-	    // 	}
-	    // 	temp.put(key, (String) txnContext.write_set.get(key));
-	    // 	writeSet.put(part, temp);
-	    // }
+            String table = write_set_it.next();
+	    HashMap<String, String> kvSets = txnContext.write_set.get(table);
+	    Iterator writekv_it = kvSets.entrySet().iterator();
+	    while (writekv_it.hasNext()) {
+		Map.Entry entry = (Map.Entry) writekv_it.next();
+		String key = (String) entry.getKey();
+		int partNum = this.server.hashKey(key);
+		ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
+		
+		// if coordinator
+		if (this.server.getAddress().equals(tid.getServerAddress())) {
+		    partitions.add(new Integer(partNum));
+		    if (!sendSA.equals(this.server.getAddress())) {
+			cohorts.add(sendSA);
+		    }
+		}
+		
+		if (sendSA.equals(this.server.getAddress())) {
+		    this.server.lockW(key + table, tid);
+		    HashSet<String> set = writeLocked.get(table);
+		    if (set == null) {
+			set = new HashSet<String>();
+		    }
+		    set.add(key);
+		    writeLocked.put(table, set);
+		    Integer part = new Integer(partNum);
+		    HashMap<String, HashMap<String, String> > temp = writeSet.get(part);
+		    if (temp == null) {
+			temp = new HashMap<String, HashMap<String, String> >();
+			temp.put(table, new HashMap<String, String>());
+		    }
+		    HashMap<String, String> kv = temp.get(table);
+		    kv.put(key, (String) txnContext.write_set.get(table).get(key));
+		    temp.put(table, kv);
+		    writeSet.put(part, temp);
+		}
+	    }
 	        
         }
 
         while (read_set_it.hasNext()) {
-            String key = (String) read_set_it.next();
-            int partNum = this.server.hashKey(key);
-	    ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
-	    
-            // if coordinator
-            if (this.server.getAddress().equals(tid.getServerAddress())) {
-		partitions.add(new Integer(partNum));
-		if (!sendSA.equals(this.server.getAddress())) {
-		    cohorts.add(sendSA);
+            String table = (String) read_set_it.next();
+	    HashMap<String, String> kvSets = txnContext.read_set.get(table);
+	    Iterator kvSets_it = kvSets.entrySet().iterator();
+	    while (kvSets_it.hasNext()) {
+		Map.Entry entry = (Map.Entry) kvSets_it.next();
+		String key = (String) entry.getKey();
+		int partNum = this.server.hashKey(key);
+		ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
+		
+		// if coordinator
+		if (this.server.getAddress().equals(tid.getServerAddress())) {
+		    partitions.add(new Integer(partNum));
+		    if (!sendSA.equals(this.server.getAddress())) {
+			cohorts.add(sendSA);
+		    }
 		}
-            }
-
-            if (sendSA.equals(this.server.getAddress())) {
-                this.server.lockR(key, tid);
-                String value = this.server.get(partNum, key);
-		if (value != null) {
-		    readSet.put(key, value);
-		} else {
-		    readSet.put(key, "");
+		
+		if (sendSA.equals(this.server.getAddress())) {
+		    this.server.lockR(key+table, tid);
+		    String value = this.server.get(partNum, table, key);
+		    HashMap<String, String> kv = readSet.get(table);
+		    if (kv == null) {
+			kv = new HashMap<String, String>();
+		    }
+		    if (value != null) {
+			kv.put(key, value);
+		    } else {
+			kv.put(key, "");
+		    }
+		    readSet.put(table, kv);
+		    HashSet<String> set = readLocked.get(table);
+		    if (set == null) {
+			set = new HashSet<String>();
+		    }
+		    set.add(key);
+		    readLocked.put(table, set);
 		}
-		readLocked.add(key);
-            }
+	    }
         }
 
         // TODO: this can definitely be optimized
@@ -198,12 +229,24 @@ public class Worker implements Runnable {
 		    this.abort(rpcReq);
 		    return ;
 		} else if (receivedReq.method.equals("start-reply")) {
-		    HashMap<String, String> rset = (HashMap<String, String>) ((HashMap<String, Object>) receivedReq.args).get("Read Set");
+		    HashMap<String, Object> receivedArgs = (HashMap<String, Object>) receivedReq.args;
+		    HashMap<String, HashMap<String, String> > rset = (HashMap<String, HashMap<String, String> >) receivedArgs.get("Read Set");
 		    //System.out.println(receivedReq.method + " -> Read set is " + rset);
-		    Iterator<Entry<String, String>> rit = rset.entrySet().iterator();
+		    Iterator rit = rset.entrySet().iterator();
 		    while (rit.hasNext()) {
-			Map.Entry<String, String> kv = rit.next();
-			readSet.put(kv.getKey(), kv.getValue());
+			Map.Entry kv = (Map.Entry) rit.next();
+			String table = (String) kv.getKey();
+			HashMap<String, String> kvPairs = (HashMap<String, String>) kv.getValue();
+			Iterator kvPairs_it = kvPairs.entrySet().iterator();
+			while (kvPairs_it.hasNext()) {
+			    Map.Entry<String, String> kv_pair = (Map.Entry<String, String>) kvPairs_it.next();
+			    if (readSet.get(table) == null) {
+				readSet.put(table, new HashMap<String, String>());
+			    }
+			    HashMap<String, String> map = readSet.get(table);
+			    map.put(kv_pair.getKey(), kv_pair.getValue());
+			    readSet.put(table, map);
+			}
 		    }
 		    receivedSA.add(receivedReq.replyAddress);
 		    waitServers.remove(receivedReq.replyAddress);
@@ -248,14 +291,26 @@ public class Worker implements Runnable {
     public void abort(RPCRequest rpcReq) {
         // abort the transaction, release all locks held by the txn
     	//System.out.println("ABORTING");
-        Iterator<String> it1 = writeLocked.iterator();
+        Iterator it1 = writeLocked.entrySet().iterator();
         while (it1.hasNext()) {
-            this.server.unlockW((String) it1.next(), rpcReq.tid);
+	    Map.Entry entry = (Map.Entry) it1.next();
+	    String table = (String) entry.getKey();
+	    HashSet<String> keys = (HashSet<String>) entry.getValue();
+	    Iterator keys_it = keys.iterator();
+	    while (keys_it.hasNext()) {
+		this.server.unlockW((String) keys_it.next() + table, rpcReq.tid);
+	    }
         }
 
-        Iterator<String> it2 = readLocked.iterator();
+        Iterator it2 = readLocked.entrySet().iterator();
         while (it2.hasNext()) {
-            this.server.unlockR((String) it2.next(), rpcReq.tid);
+	    Map.Entry entry = (Map.Entry) it2.next();
+	    String table = (String) entry.getKey();
+	    HashSet<String> keys = (HashSet<String>) entry.getValue();
+	    Iterator keys_it = keys.iterator();
+	    while (keys_it.hasNext()) {
+		this.server.unlockR((String) keys_it.next() + table, rpcReq.tid);
+	    }	    
         }
 
         // TODO: reply to replyAddress, exit
@@ -373,22 +428,41 @@ public class Worker implements Runnable {
 	    while (it.hasNext()) {
 		Map.Entry kv = (Map.Entry) it.next();
 		Integer partition = (Integer) kv.getKey();
-		Iterator map_it = ((HashMap<String, String>) kv.getValue()).entrySet().iterator();
+		HashMap<String, HashMap<String, String> > partitionData = (HashMap<String, HashMap<String, String> >) kv.getValue();
+		Iterator map_it = partitionData.entrySet().iterator();
 		while (map_it.hasNext()) {
 		    Map.Entry pair = (Map.Entry) map_it.next();
-		    this.server.put(partition, (String) pair.getKey(), (String) pair.getValue());
+		    String table = (String) pair.getKey();
+		    HashMap<String, String> key_values = (HashMap<String, String>) pair.getValue();
+		    Iterator key_values_it = key_values.entrySet().iterator();
+		    while (key_values_it.hasNext()) {
+			Map.Entry kvpair = (Map.Entry) key_values_it.next();
+			this.server.put(partition, table, (String) kvpair.getKey(), (String) kvpair.getValue());
+		    }
 		}
 	    }
 
 	    // release all locks
-	    Iterator it1 = writeLocked.iterator();
+	    Iterator it1 = writeLocked.entrySet().iterator();
 	    while (it1.hasNext()) {
-		this.server.unlockW((String) it1.next(), rpcReq.tid);
+		Map.Entry entry = (Map.Entry) it1.next();
+		String table = (String) entry.getKey();
+		HashSet<String> keys = (HashSet<String>) entry.getValue();
+		Iterator keys_it = keys.iterator();
+		while (keys_it.hasNext()) {
+		    this.server.unlockW((String) keys_it.next() + table, rpcReq.tid);
+		}
 	    }
 
-	    Iterator it2 = readLocked.iterator();
+	    Iterator it2 = readLocked.entrySet().iterator();
 	    while (it2.hasNext()) {
-		this.server.unlockR((String) it2.next(), rpcReq.tid);
+		Map.Entry entry = (Map.Entry) it2.next();
+		String table = (String) entry.getKey();
+		HashSet<String> keys = (HashSet<String>) entry.getValue();
+		Iterator keys_it = keys.iterator();
+		while (keys_it.hasNext()) {
+		    this.server.unlockR((String) keys_it.next() + table, rpcReq.tid);
+		}	    
 	    }
 
             c_it = cohorts.iterator();
@@ -441,22 +515,41 @@ public class Worker implements Runnable {
 	    while (it.hasNext()) {
 		Map.Entry kv = (Map.Entry) it.next();
 		Integer partition = (Integer) kv.getKey();
-		Iterator map_it = ((HashMap<String, String>) kv.getValue()).entrySet().iterator();
+		HashMap<String, HashMap<String, String> > partitionData = (HashMap<String, HashMap<String, String> >) kv.getValue();
+		Iterator map_it = partitionData.entrySet().iterator();
 		while (map_it.hasNext()) {
 		    Map.Entry pair = (Map.Entry) map_it.next();
-		    this.server.put(partition, (String) pair.getKey(), (String) pair.getValue());
+		    String table = (String) pair.getKey();
+		    HashMap<String, String> key_values = (HashMap<String, String>) pair.getValue();
+		    Iterator key_values_it = key_values.entrySet().iterator();
+		    while (key_values_it.hasNext()) {
+			Map.Entry kvpair = (Map.Entry) key_values_it.next();
+			this.server.put(partition, table, (String) kvpair.getKey(), (String) kvpair.getValue());
+		    }
 		}
 	    }
 
 	    // release all locks
-	    Iterator it1 = writeLocked.iterator();
+	    Iterator it1 = writeLocked.entrySet().iterator();
 	    while (it1.hasNext()) {
-		this.server.unlockW((String) it1.next(), rpcReq.tid);
+		Map.Entry entry = (Map.Entry) it1.next();
+		String table = (String) entry.getKey();
+		HashSet<String> keys = (HashSet<String>) entry.getValue();
+		Iterator keys_it = keys.iterator();
+		while (keys_it.hasNext()) {
+		    this.server.unlockW((String) keys_it.next() + table, rpcReq.tid);
+		}
 	    }
 
-	    Iterator it2 = readLocked.iterator();
+	    Iterator it2 = readLocked.entrySet().iterator();
 	    while (it2.hasNext()) {
-		this.server.unlockR((String) it2.next(), rpcReq.tid);
+		Map.Entry entry = (Map.Entry) it2.next();
+		String table = (String) entry.getKey();
+		HashSet<String> keys = (HashSet<String>) entry.getValue();
+		Iterator keys_it = keys.iterator();
+		while (keys_it.hasNext()) {
+		    this.server.unlockR((String) keys_it.next() + table, rpcReq.tid);
+		}	    
 	    }
 
             // sends "ack" back to original server
@@ -472,15 +565,15 @@ public class Worker implements Runnable {
         }
     }
 
-    public void receive(RPCRequest req) {
-        // received reads from another machine, update readSet
-        HashMap<String, String> rcvdSet = (HashMap<String, String>) req.args;
-        Iterator<Entry<String, String>> it = rcvdSet.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<String, String> kv = it.next();
-            this.readSet.put((String) kv.getKey(), (String) kv.getValue());
-        }
-    }
+    // public void receive(RPCRequest req) {
+    //     // received reads from another machine, update readSet
+    //     HashMap<String, String> rcvdSet = (HashMap<String, String>) req.args;
+    //     Iterator<Entry<String, String>> it = rcvdSet.entrySet().iterator();
+    //     while (it.hasNext()) {
+    //         Map.Entry<String, String> kv = it.next();
+    //         this.readSet.put((String) kv.getKey(), (String) kv.getValue());
+    //     }
+    // }
     
 
     /**
