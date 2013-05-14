@@ -31,16 +31,10 @@ public class LockTable {
 
     public void lockW(String key, TransactionId tid) {
     	long startTime = System.currentTimeMillis();
-    	long timeout = 2000;
+    	long timeout = 1000;
     	boolean flag = true;
         while (true) {
-//	     if (System.currentTimeMillis() - startTime > timeout){
-//	     	RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
-//	     					 new HashMap<String, Object>());
-//	     	RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
-//	     	System.out.println("deadlock detected by timeout");
-//	     	break;
-//	     }
+
             synchronized (this) {
                 TransactionId wtid = write_locks.get(key);
                 HashSet<TransactionId> rtid = read_locks.get(key);
@@ -86,8 +80,15 @@ public class LockTable {
                         ret.add(it.next());
                     }
                 }
-                System.out.println("locking " + key + " for tid " + tid.getTID() + " stuck");
+                //System.out.println("locking " + key + " for tid " + tid.getTID() + " stuck");
                 wfg.put(tid, ret);
+       	     if (System.currentTimeMillis() - startTime > timeout){
+     	     	RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
+     	     					 new HashMap<String, Object>());
+     	     	RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
+     	     	DeadlockTest.print("deadlock detected by timeout");
+     	     	break;
+     	     }
                 if (flag){
                 	cmhDeadlockInitiate(tid);
                 	flag = false;

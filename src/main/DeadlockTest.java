@@ -15,76 +15,63 @@ public class DeadlockTest {
 			System.out.println(s);
 	}
 
-    public static boolean startTxn(ServerAddress sa,
-				   ServerAddress client,
-				   int tidNum, 
-				   HashMap<String, String> write_set, 
-				   HashMap<String, String> read_set, 
-				   RPC rpc) {
-	
-	TransactionId tid = new TransactionId(sa, tidNum);
-	HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
-	rpcArgs.put("Read Set", read_set);
-	rpcArgs.put("Write Set", write_set);
-	RPCRequest newReq = new RPCRequest("start", client, tid, rpcArgs);
-	RPC.send(sa, "start", "001", newReq.toJSONObject());
-	JSONRPC2Request resp = rpc.receive();
-	HashMap<String, Object> params = (HashMap<String, Object>) resp.getNamedParams();
-	if (resp.getMethod().equals("abort-done")) {
-	    //System.out.println("Transaction " + tidNum + " start is aborted");
-	    return false;
-	} else if (resp.getMethod().equals("start-done")) {
-	    System.out.println("Transaction " + tidNum + " start is done");
-	    return true;
-	}
-	return false;
-    }
-    
-	public static boolean getSingleLock(ServerAddress sa, ServerAddress client,
-			int tidNum, HashMap<String, String> write_set, RPC rpc){
-		TransactionId tid = new TransactionId(sa, tidNum);
-		HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
-		rpcArgs.put("Write Set", write_set);
-		RPCRequest newReq = new RPCRequest("start", client, tid, rpcArgs);
-		RPC.send(sa, "single-lock", "001", newReq.toJSONObject());
-		//JSONRPC2Request resp = rpc.receive();
-		//System.out.println("Response from single lock:\n"+resp.toJSONString());
-		return true;
-	}
+	   public static boolean startTxn(ServerAddress sa,
+			   ServerAddress client,
+			   int tidNum, 
+			   HashMap<String, HashMap<String, String> > write_set, 
+			   HashMap<String, HashMap<String, String> > read_set, 
+			   RPC rpc) {
 
+TransactionId tid = new TransactionId(sa, tidNum);
+HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
+rpcArgs.put("Read Set", read_set);
+rpcArgs.put("Write Set", write_set);
+RPCRequest newReq = new RPCRequest("start", client, tid, rpcArgs);
+RPC.send(sa, "start", "001", newReq.toJSONObject());
+JSONRPC2Request resp = rpc.receive();
+HashMap<String, Object> params = (HashMap<String, Object>) resp.getNamedParams();
+if (resp.getMethod().equals("abort-done")) {
+    //System.out.println("Transaction " + tidNum + " start is aborted");
+    return false;
+} else if (resp.getMethod().equals("start-done")) {
+    //System.out.println("Transaction " + tidNum + " start is done");
+    return true;
+}
+return false;
+}
 
-    public static HashMap<String, Object> commit(ServerAddress sa, 
-						 ServerAddress client, 
-						 int tidNum, 
-						 RPC rpc) {
+public static HashMap<String, HashMap<String, String> > commit(ServerAddress sa, 
+							   ServerAddress client, 
+							   int tidNum, 
+							   RPC rpc) {
 
-	TransactionId tid = new TransactionId(sa, tidNum);
-	RPCRequest newReq = new RPCRequest("commit", client, tid, new HashMap<String, Object>());
-	RPC.send(sa, "commit", "001", newReq.toJSONObject());
-	JSONRPC2Request resp = rpc.receive();
-	HashMap<String, Object> params = (HashMap<String, Object>) resp.getNamedParams();
+TransactionId tid = new TransactionId(sa, tidNum);
+RPCRequest newReq = new RPCRequest("commit", client, tid, new HashMap<String, Object>());
+RPC.send(sa, "commit", "001", newReq.toJSONObject());
+JSONRPC2Request resp = rpc.receive();
+HashMap<String, Object> params = (HashMap<String, Object>) resp.getNamedParams();
 
-	if (resp.getMethod().equals("abort-done")) {
-	    //System.out.println("Transaction " + tidNum + " commit is aborted");
-	    return null;
-	} else if (resp.getMethod().equals("commit-done")) {
-	    HashMap<String, Object> args = (HashMap<String, Object>) resp.getNamedParams();
-	    System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
-	    return ((HashMap<String, Object>) ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
-	}
-	return null;
-    }
+if (resp.getMethod().equals("abort-done")) {
+    //System.out.println("Transaction " + tidNum + " commit is aborted");
+    return null;
+} else if (resp.getMethod().equals("commit-done")) {
+    HashMap<String, Object> args = (HashMap<String, Object>) resp.getNamedParams();
+    //System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
+    return ((HashMap<String, HashMap<String, String> >) ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
+}
+return null;
+}
 
-    public static void abort(ServerAddress sa, 
-			     ServerAddress client, 
-			     int tidNum,
-			     RPC rpc) {
+public static void abort(ServerAddress sa, 
+		     ServerAddress client, 
+		     int tidNum,
+		     RPC rpc) {
 
-	TransactionId tid = new TransactionId(sa, tidNum);
-	RPCRequest newReq = new RPCRequest("abort", client, tid, new HashMap<String, Object>());
-	RPC.send(sa, "abort", "001", newReq.toJSONObject());
-	JSONRPC2Request resp = rpc.receive();
-    }
+TransactionId tid = new TransactionId(sa, tidNum);
+RPCRequest newReq = new RPCRequest("abort", client, tid, new HashMap<String, Object>());
+RPC.send(sa, "abort", "001", newReq.toJSONObject());
+JSONRPC2Request resp = rpc.receive();
+}
 
     public class DeadlockTester implements Runnable{
 	
@@ -106,11 +93,17 @@ public class DeadlockTest {
 
 	public void run() {
 
+	    HashMap<String, HashMap<String, String> > actualWrites = new HashMap<String, HashMap<String, String> >();
+	    HashMap<String, HashMap<String, String> > actualReads = new HashMap<String, HashMap<String, String> >();
+
 	    HashMap<String, String> committedWrites = new HashMap<String, String>();
 	    HashMap<String, String> abortedWrites = new HashMap<String, String>();
 
 	    HashMap<String, String> wset = new HashMap<String, String>();
 	    HashMap<String, String> rset = new HashMap<String, String>();
+
+	    actualWrites.put("table", wset);
+	    actualReads.put("table", rset);
 	    
 	    int tid = seed;
 	    
@@ -122,9 +115,9 @@ public class DeadlockTest {
 		for (int j = 0; j < testKeys.size(); j++) {
 		    wset.put(testKeys.get(j).toString(), Integer.toString(random.nextInt(1000)));
 		}
-		
-		while (!DeadlockTest.startTxn(contact, address, tid, wset, rset, rpc)) {
-		    System.out.println("Tries to start W txn " + tid);
+
+		while (!DeadlockTest.startTxn(contact, address, tid, actualWrites, actualReads, rpc)) {
+		    //System.out.println("Tries to start W txn " + tid);
 		}
 
 		if (Math.random() < 0.5 || tid == 0) {
@@ -139,9 +132,9 @@ public class DeadlockTest {
 		    }
 		} else {
 		    // abort
-		    System.out.println("TID " + tid + " start abort ");
+		    //System.out.println("TID " + tid + " start abort ");
 		    DeadlockTest.abort(contact, address, tid, rpc);
-		    System.out.println("TID " + tid + " abort done ");
+		    //System.out.println("TID " + tid + " abort done ");
 		}
 		
 		wset.clear();
@@ -153,11 +146,12 @@ public class DeadlockTest {
 		    rset.put((String) entry.getKey(), "");
 		}
 
-		while (!DeadlockTest.startTxn(contact, address, tid, wset, rset, rpc)) {
+		while (!DeadlockTest.startTxn(contact, address, tid, actualWrites, actualReads, rpc)) {
 		    //System.out.println("Tries to start R txn " + tid);
 		}
 
-		HashMap<String, Object> read = DeadlockTest.commit(contact, address, tid, rpc);
+		HashMap<String, HashMap<String, String> > read_map = DeadlockTest.commit(contact, address, tid, rpc);
+		HashMap<String, String> read = read_map.get("table");
 		if (read != null) {
 		    Iterator iter = committedWrites.entrySet().iterator();
 		    while (iter.hasNext()) {
@@ -241,6 +235,7 @@ public class DeadlockTest {
 	(new Thread(s2)).start();
 	(new Thread(s3)).start();
 
+	/*
 	HashMap<String, Object> rpcArgs = new HashMap<String, Object>();
 
 	HashMap<String, String> write_set = new HashMap<String, String>();
@@ -249,21 +244,21 @@ public class DeadlockTest {
 
 	System.out.println("Started request for transaction 1");
 	HashMap<String, String> write_set1a = new HashMap<String, String>();
-	write_set1a.put("a", "b");
+	write_set1a.put("1table", "a");
 	DeadlockTest.startTxn(sa1, client, 1, write_set1a, read_set, rpc);
 	
 	System.out.println("Started request for transaction 2");
 	
 	HashMap<String, String> write_set2a = new HashMap<String, String>();
-	write_set2a.put("b", "a");
+	write_set2a.put("2table", "b");
 	DeadlockTest.startTxn(sa2, client, 2, write_set2a, read_set, rpc);
 	
 	HashMap<String, String> write_set2b = new HashMap<String, String>();
-	write_set2b.put("a", "d");
+	write_set2b.put("1table", "d");
 	DeadlockTest.getSingleLock(sa2, client, 2, write_set2b, rpc);
 	
 	HashMap<String, String> write_set1b = new HashMap<String, String>();
-	write_set1b.put("b", "c");
+	write_set1b.put("2table", "c");
 	DeadlockTest.getSingleLock(sa1, client, 1, write_set1b, rpc);
 
 	System.out.println("Started request for transaction 3");
@@ -272,6 +267,7 @@ public class DeadlockTest {
 	read_set.put("b", "");
 	DeadlockTest.startTxn(sa3, client, 3, write_set, read_set, rpc);
 	DeadlockTest.commit(sa3, client, 3, rpc);
+	*/
 
 	DeadlockTest t = new DeadlockTest();
 
@@ -281,8 +277,8 @@ public class DeadlockTest {
 	DeadlockTest.DeadlockTester t1 = t.new DeadlockTester(servers, 10, new ServerAddress(3, "T1", 8888), keySet1);
 
 	ArrayList<String> keySet2 = new ArrayList<String>();
-	keySet2.add("2");
-	keySet2.add("6");
+	keySet2.add("5");
+	keySet2.add("1");
 	DeadlockTest.DeadlockTester t2 = t.new DeadlockTester(servers, 1000, new ServerAddress(4, "T2", 8889), keySet2);
 
 	(new Thread(t1)).start();

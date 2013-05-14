@@ -292,7 +292,7 @@ public class Worker implements Runnable {
     // TODO: write to log?
     public void abort(RPCRequest rpcReq) {
         // abort the transaction, release all locks held by the txn
-    	//System.out.println("ABORTING");
+    	System.out.println("aborting...");
         Iterator it1 = writeLocked.entrySet().iterator();
         while (it1.hasNext()) {
 	    Map.Entry entry = (Map.Entry) it1.next();
