@@ -150,14 +150,16 @@ public class CMHProcessor {
      * Sends a Chandy-Misra-Haas message along the path
      */
     public void propagateMessage(int initiator, TransactionId currentTransaction, Set<TransactionId> waitingForTransactions){
-    	//rpc = new RPC(currentTransaction.getServerAddress());
-    	for (TransactionId waitingFortid: waitingForTransactions) {
-    		CMHMessage msg = new CMHMessage(initiator, currentTransaction.getTID(), waitingFortid.getTID());
-    		messagesToSend.add(msg);
-    		HashMap<String, Object> args = msg.getArgs();
-    		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
-    		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
-    		//JSONRPC2Request resp = rpc.receive();
+    	if (waitingForTransactions != null) {
+    		//rpc = new RPC(currentTransaction.getServerAddress());
+	    	for (TransactionId waitingFortid: waitingForTransactions) {
+	    		CMHMessage msg = new CMHMessage(initiator, currentTransaction.getTID(), waitingFortid.getTID());
+	    		messagesToSend.add(msg);
+	    		HashMap<String, Object> args = msg.getArgs();
+	    		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
+	    		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
+	    		//JSONRPC2Request resp = rpc.receive();
+	    	}
     	}
     }
 

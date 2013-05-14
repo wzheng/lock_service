@@ -107,7 +107,7 @@ public class Server implements Runnable  {
     }
 
     public void lockW(String key, TransactionId tid) {
-        this.lockTable.lockW(key, tid);
+    	this.lockTable.lockW(key, tid);
     }
 
     public void lockR(String key, TransactionId tid) {
