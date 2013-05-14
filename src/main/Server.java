@@ -122,23 +122,23 @@ public class Server implements Runnable  {
         this.lockTable.unlockR(key, tid);
     }
 
-    public String get(int partition, String key) {
-        return this.dataStore.get(partition, key);
+    public String get(int partition, String table, String key) {
+        return this.dataStore.get(partition, table, key);
     }
 
-    public void put(int partition, String key, String value) {
-        this.dataStore.put(partition, key, value);
+    public void put(int partition, String table, String key, String value) {
+        this.dataStore.put(partition, table, key, value);
     }
 
     public synchronized int getNumWorkers() {
 	return activeWorkers.size();
     }
 
-    public HashMap<String, String> getPartitionData(int partition) {
+    public HashMap<String, HashMap<String, String> > getPartitionData(int partition) {
 	return this.dataStore.getPartition(partition);
     }
 
-    public void addPartitionData(int partition, HashMap<String, String> partitionData) {
+    public void addPartitionData(int partition, HashMap<String, HashMap<String, String> > partitionData) {
 	this.dataStore.addPartition(partition, partitionData);
     }
 

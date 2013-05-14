@@ -141,7 +141,7 @@ public class CMHProcessor {
     		HashMap<String, Object> args = msg.getArgs();
     		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
     		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
-    		System.out.println("CMH message sent from " + currentTransaction.getTID() + " to " + waitingFortid.getTID());
+    		//System.out.println("CMH message sent from " + currentTransaction.getTID() + " to " + waitingFortid.getTID());
     		//JSONRPC2Request resp = rpc.receive();
     	}
     }

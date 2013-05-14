@@ -154,8 +154,8 @@ public class PartitionUpdater implements Runnable {
 		
 		if (args.get("Method").equals("Send")) {
 		    int partition = ((Long) args.get("Partition Number")).intValue();
-		    HashMap<String, String> partitionData = (HashMap<String, String>) args.get("Partition");
-		    System.out.println("Received partition " + partition + " data is " + partitionData);
+		    HashMap<String, HashMap<String, String> > partitionData = (HashMap<String, HashMap<String, String> >) args.get("Partition");
+		    //System.out.println("Received partition " + partition + " data is " + partitionData);
 		    this.server.addPartitionData(partition, partitionData);
 		    receive.remove(new Integer(partition));
 		} else {
@@ -294,7 +294,7 @@ public class PartitionUpdater implements Runnable {
 	    }
 
 	    try {
-		Thread.sleep(5000);
+		Thread.sleep(4000);
 	    } catch (InterruptedException e) {
 
 	    }

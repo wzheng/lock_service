@@ -5,6 +5,8 @@ import java.lang.Math;
 
 import com.thetransactioncompany.jsonrpc2.*;
 
+// THIS IS DEPRECATED! THE INTERFACE HAS SINCE CHANGED
+
 // Test for two-phase commit
 
 public class TPCTest {
