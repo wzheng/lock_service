@@ -27,7 +27,7 @@ public class PartitionTest {
 	    //System.out.println("Transaction " + tidNum + " start is aborted");
 	    return false;
 	} else if (resp.getMethod().equals("start-done")) {
-	    System.out.println("Transaction " + tidNum + " start is done");
+	    //System.out.println("Transaction " + tidNum + " start is done");
 	    return true;
 	}
 	return false;
@@ -49,7 +49,7 @@ public class PartitionTest {
 	    return null;
 	} else if (resp.getMethod().equals("commit-done")) {
 	    HashMap<String, Object> args = (HashMap<String, Object>) resp.getNamedParams();
-	    System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
+	    //System.out.println("Transaction " + tidNum + " commit is done --> " + ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
 	    return ((HashMap<String, Object>) ((HashMap<String, Object>) args.get("Args")).get("Read Set"));
 	}
 	return null;
@@ -104,7 +104,7 @@ public class PartitionTest {
 		}
 		
 		while (!PartitionTest.startTxn(contact, address, tid, wset, rset, rpc)) {
-		    System.out.println("Tries to start W txn " + tid);
+		    //System.out.println("Tries to start W txn " + tid);
 		}
 
 		if (Math.random() < 0.5 || tid == 0) {
@@ -119,9 +119,9 @@ public class PartitionTest {
 		    }
 		} else {
 		    // abort
-		    System.out.println("TID " + tid + " start abort ");
+		    //System.out.println("TID " + tid + " start abort ");
 		    PartitionTest.abort(contact, address, tid, rpc);
-		    System.out.println("TID " + tid + " abort done ");
+		    //System.out.println("TID " + tid + " abort done ");
 		}
 		
 		wset.clear();
@@ -182,8 +182,8 @@ public class PartitionTest {
 	RPC rpc = new RPC(client);
 
 	// Re-partitioning Test
-	PartitionTable pt1 = new PartitionTable()
-;	PartitionTable pt2 = new PartitionTable();
+	PartitionTable pt1 = new PartitionTable();
+	PartitionTable pt2 = new PartitionTable();
 	PartitionTable pt3 = new PartitionTable();
 	int numPartitions = 12;
 	ServerAddress sa1 = new ServerAddress(0, "S0", 4444);
@@ -253,6 +253,7 @@ public class PartitionTest {
 	PartitionTest.PartitionTester t1 = t.new PartitionTester(servers, 10, new ServerAddress(3, "T1", 8888), keySet1);
 
 	ArrayList<String> keySet2 = new ArrayList<String>();
+	keySet2.add("3");
 	keySet2.add("2");
 	keySet2.add("6");
 	PartitionTest.PartitionTester t2 = t.new PartitionTester(servers, 1000, new ServerAddress(4, "T2", 8889), keySet2);

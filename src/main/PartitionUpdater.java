@@ -294,7 +294,7 @@ public class PartitionUpdater implements Runnable {
 	    }
 
 	    try {
-		Thread.sleep(5000);
+		Thread.sleep(4000);
 	    } catch (InterruptedException e) {
 
 	    }

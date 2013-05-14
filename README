@@ -1,3 +1,4 @@
-This is an implementation of a lock service for a distributed database.
+This is an implementation of a distributed database. 
+This database is not fault-tolerant and does not support unreliable networks (not yet!).
 
-To build: run exec.sh
+To build: run exec.sh TEST_NAME

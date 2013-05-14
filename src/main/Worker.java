@@ -287,7 +287,7 @@ public class Worker implements Runnable {
 
                 RPCRequest req = (RPCRequest) obj;
 		if (req.method.equals("abort-reply")) {
-		    System.out.println("Tid " + rpcReq.tid.getTID() + " abort received");
+		    //System.out.println("Tid " + rpcReq.tid.getTID() + " abort received");
 		    waitServers.remove(req.replyAddress);
 		} else {
 		    queue.put(obj);
@@ -307,7 +307,7 @@ public class Worker implements Runnable {
             ServerAddress thisSA = this.server.getAddress();
             args.put("State", true);
 
-	    System.out.println("Server " + thisSA + " abort received for tid " + rpcReq.tid.getTID());
+	    //System.out.println("Server " + thisSA + " abort received for tid " + rpcReq.tid.getTID());
 
             RPCRequest newReq = new RPCRequest("abort-reply", thisSA, rpcReq.tid, args);
             RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
@@ -529,7 +529,7 @@ public class Worker implements Runnable {
             } else if (rpcReq.method.equals("commit-prepare")) {
                 this.commitPrepare(rpcReq);
             } else if (rpcReq.method.equals("commit")) {
-				this.commit(rpcReq);
+		this.commit(rpcReq);
             } else if (rpcReq.method.equals("deadlock")){
             	this.processcmhMessage(rpcReq);
             } else if (rpcReq.method.equals("single-lock")){
