@@ -29,11 +29,11 @@ public class LockTable {
     	return wfg.get(tid);
     }
 
-    public void lockW(String key, TransactionId tid) {
+    public boolean lockW(String key, TransactionId tid) {
     	long startTime = System.currentTimeMillis();
     	long timeout = 1000;
     	boolean flag = true;
-        while (true) {
+        //while (true) {
 
             synchronized (this) {
                 TransactionId wtid = write_locks.get(key);
@@ -44,24 +44,28 @@ public class LockTable {
                     read_locks.put(key, rtid);
                     write_locks.put(key, tid);
                     // updateState(tid, key, false);
+                    synchronized(this){
                     DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
                     DeadlockTest.print("locks held:");
                     for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
                     	DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
                     }
-                    //return true;
-                    return;
+                    }
+                    return true;
+                    //return;
                 }
                 else if ((wtid == null || wtid == tid) && (rtid == null || rtid.isEmpty())) {
                     write_locks.put(key, tid);
                     // updateState(tid, key, false);
+                    synchronized(this){
                     DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
                     DeadlockTest.print("locks held:");
                     for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
                     	DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
                     }
-                    //return true;
-                    return;
+                    }
+                    return true;
+                    //return;
                 }
             }
             synchronized (this) {
@@ -87,14 +91,15 @@ public class LockTable {
      	     					 new HashMap<String, Object>());
      	     	RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
      	     	DeadlockTest.print("deadlock detected by timeout");
-     	     	break;
+     	     	//break;
      	     }
                 if (flag){
-                	cmhDeadlockInitiate(tid);
+                	//cmhDeadlockInitiate(tid);
                 	flag = false;
                 } else {
                 	
                 }
+                synchronized(this){
                 DeadlockTest.print("lock NOT obtained by TID " + tid.getTID() + " for key " + key);
                 DeadlockTest.print("locks held:");
                 for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
@@ -108,13 +113,14 @@ public class LockTable {
                 	}
                 	DeadlockTest.print(e.getKey().getTID() + " : " + s);
                 }
-                //return false;
+                }
+                return false;
                 //checkDeadLock(tid);
             }
             
 
 			
-        }
+        //}
     }
 
     public void lockR(String key, TransactionId tid) {
@@ -220,7 +226,7 @@ public class LockTable {
      */
     public void cmhDeadlockInitiate(TransactionId tid){
     	
-    	CMHProcessor cmhProcessor = new CMHProcessor(tid);
+    	CMHProcessor cmhProcessor = new CMHProcessor();
     	// generate initial message from this TID and any others it's waiting on
     	cmhProcessor.generateMessage(tid, getWFG(tid));
     	

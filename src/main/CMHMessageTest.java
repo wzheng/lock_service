@@ -43,27 +43,27 @@ public class CMHMessageTest {
         processes = new CMHHandler();
         s1 = new ServerAddress(1, "server 1", 2000);
         t1 = new TransactionId(s1, 1);
-        p1 = new CMHProcessor(t1);
+        p1 = new CMHProcessor();
         processes.add(1, p1);
 
         s2 = new ServerAddress(2, "server 2", 2000);
         t2 = new TransactionId(s2, 2);
-        p2 = new CMHProcessor(t2);
+        p2 = new CMHProcessor();
         processes.add(2, p2);
 
         s3 = new ServerAddress(3, "server 3", 2000);
         t3 = new TransactionId(s3, 3);
-        p3 = new CMHProcessor(t3);
+        p3 = new CMHProcessor();
         processes.add(3, p3);
 
         s4 = new ServerAddress(4, "server 4", 2000);
         t4 = new TransactionId(s4, 4);
-        p4 = new CMHProcessor(t4);
+        p4 = new CMHProcessor();
         processes.add(4, p4);
 
         s5 = new ServerAddress(5, "server 5", 2000);
         t5 = new TransactionId(s5, 4);
-        p5 = new CMHProcessor(t5);
+        p5 = new CMHProcessor();
         processes.add(5, p5);
         
         rpc = new RPC(s1);

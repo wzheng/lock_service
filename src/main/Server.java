@@ -61,6 +61,25 @@ public class Server implements Runnable  {
 	this.activeWorkers = new HashMap<TransactionId, CommunicationQ>();
     }
 
+    /*
+    public HashSet<TransactionId> getGlobalWFG(TransactionId tid){
+    	HashSet<TransactionId> g = new HashSet<TransactionId>();
+    	for (ServerAddress s : serverList.values()){
+    		HashMap<String, Object> args = new HashMap<String, Object>();
+    		RPCRequest sendReq = new RPCRequest("get-wfg", address, tid, args);
+    		synchronized(this){
+    			RPC.send(s, "get-wfg", "001", args);
+    			JSONRPC2Request x = JSONRPC2Request.parse((String)queue.get());
+    			HashMap<String, Object> rep = (HashMap<String, Object>) x.getNamedParams();
+    			HashSet<TransactionId> tmp = (HashSet<TransactionId>) rep.get("wfg");
+    			for (TransactionId tmpTid : tmp){
+    				g.add(tmpTid);
+    			}
+    		}
+    	}
+    	return g;
+    }
+    */
     public HashMap<Integer, ServerAddress> getAllServers() {
 	return this.serverList;
     }
@@ -106,8 +125,8 @@ public class Server implements Runnable  {
         return this.address.getServerNumber();
     }
 
-    public void lockW(String key, TransactionId tid) {
-    	this.lockTable.lockW(key, tid);
+    public boolean lockW(String key, TransactionId tid) {
+    	return this.lockTable.lockW(key, tid);
     }
 
     public void lockR(String key, TransactionId tid) {
@@ -153,7 +172,7 @@ public class Server implements Runnable  {
 
 	    Object in = queue.get();
 	    if (in.equals("")) {
-		continue;
+	    	continue;
 	    }
 
             JSONRPC2Request reqIn = (JSONRPC2Request) in;
@@ -185,6 +204,8 @@ public class Server implements Runnable  {
 		    q.put(rpcReq);
 		}
 		
+            } else if(method.equals("get-wfg")){
+            	
             } else {
             	//System.out.println("Putting req " + method + " in queue " + rpcReq);
 		CommunicationQ q = this.activeWorkers.get(rpcReq.tid);

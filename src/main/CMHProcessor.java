@@ -2,6 +2,7 @@ package main;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 
 
 import com.thetransactioncompany.jsonrpc2.*;
@@ -11,8 +12,8 @@ import com.thetransactioncompany.jsonrpc2.util.*;
  * Class for processing Chandy-Misra-Haas messages Designed to be set up on a
  * single "process" upon creation
  */
-public class CMHProcessor {
-    private ServerAddress currentServer;
+public class CMHProcessor implements Runnable {
+    //private ServerAddress currentServer;
 
     private Set<CMHMessage> messagesToSend;
     private Set<ServerAddress> nextServerAddresses;
@@ -20,6 +21,8 @@ public class CMHProcessor {
     private RPC rpc;
 
     boolean deadlocked = false;
+    
+    ArrayBlockingQueue<String> q;
     
     //RPC rpc = null;
     
@@ -31,21 +34,21 @@ public class CMHProcessor {
      */
     private Set<Integer> waitingForTIDs;
 
-    public CMHProcessor(TransactionId transaction) {
+    public CMHProcessor() {
         //this.currentServer = transaction.getServerAddress();
         this.messagesToSend = new HashSet<CMHMessage>();
-    	//this.messageToSend = null;
         this.nextServerAddresses = new HashSet<ServerAddress>();
         this.waitingForTIDs = new HashSet<Integer>();
     }
+
     
-    public CMHProcessor(ServerAddress sa){
-        this.currentServer = sa;
-        this.messagesToSend = new HashSet<CMHMessage>();
-    	//this.messageToSend = null;
-        this.nextServerAddresses = new HashSet<ServerAddress>();
-        this.waitingForTIDs = new HashSet<Integer>();
-    }
+//    public CMHProcessor(ServerAddress sa){
+//        this.currentServer = sa;
+//        this.messagesToSend = new HashSet<CMHMessage>();
+//    	//this.messageToSend = null;
+//        this.nextServerAddresses = new HashSet<ServerAddress>();
+//        this.waitingForTIDs = new HashSet<Integer>();
+//    }
 
     /**
      * Called when a JSON message is received by this process
@@ -141,7 +144,7 @@ public class CMHProcessor {
     		HashMap<String, Object> args = msg.getArgs();
     		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
     		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
-    		//System.out.println("CMH message sent from " + currentTransaction.getTID() + " to " + waitingFortid.getTID());
+    		System.out.println("CMH message sent from " + currentTransaction.getTID() + " to " + waitingFortid.getTID());
     		//JSONRPC2Request resp = rpc.receive();
     	}
     }
@@ -163,6 +166,24 @@ public class CMHProcessor {
 	    	}
     	}
     }
+    
+    public void run(){
+    	q = new ArrayBlockingQueue<String>(10);
+    	try {
+    		q.take();
+    	} catch (InterruptedException e){
+    		
+    	}
+    }
+
+
+	public void stopThread() {
+		try {
+			q.put("");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
     
 
 }
