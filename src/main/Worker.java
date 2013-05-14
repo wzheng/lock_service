@@ -52,12 +52,12 @@ public class Worker implements Runnable {
     	HashMap<String, Object> args = (HashMap<String, Object>) rpcReq.args;
     	TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
     	//String key = (String) args.get("write-lock");
-    	System.out.println("called getSingleLock via RPC");
     	String key = (String) txnContext.write_set.keySet().toArray()[0];
+    	DeadlockTest.print("called getSingleLock via RPC for key " + key + " and transaction " + rpcReq.tid.getTID());
     	lockOneFromWriteSet(key, rpcReq.tid, txnContext);
     }
     
-    public void lockOneFromWriteSet(String key, TransactionId tid, TransactionContext txnContext){
+    public boolean lockOneFromWriteSet(String key, TransactionId tid, TransactionContext txnContext){
     	//System.out.println("called lockOneFromWriteSet for key " + key + " and transaction " + tid.getTID());
         int partNum = this.server.hashKey(key);
         ServerAddress sendSA = this.server.getPartitionTable().getServer(partNum);
@@ -71,7 +71,9 @@ public class Worker implements Runnable {
         }
 
         if (sendSA.equals(this.server.getAddress())) {
-            this.server.lockW(key, tid);
+        	this.server.lockW(key, tid); //{
+        		//return false;
+        	//}
             writeLocked.add(key);
 	    Integer part = new Integer(partNum);
 	    HashMap<String, String> temp = writeSet.get(part);
@@ -81,6 +83,8 @@ public class Worker implements Runnable {
 	    temp.put(key, (String) txnContext.write_set.get(key));
 	    writeSet.put(part, temp);
         }
+        //DeadlockTest.print("key " + key + " is now locked by transaction " + tid.getTID());
+        return true;
     	
     }
 
@@ -247,7 +251,7 @@ public class Worker implements Runnable {
     // TODO: write to log?
     public void abort(RPCRequest rpcReq) {
         // abort the transaction, release all locks held by the txn
-    	//System.out.println("ABORTING");
+    	DeadlockTest.print("aborting");
         Iterator<String> it1 = writeLocked.iterator();
         while (it1.hasNext()) {
             this.server.unlockW((String) it1.next(), rpcReq.tid);
@@ -307,7 +311,7 @@ public class Worker implements Runnable {
             ServerAddress thisSA = this.server.getAddress();
             args.put("State", true);
 
-	    System.out.println("Server " + thisSA + " abort received for tid " + rpcReq.tid.getTID());
+            System.out.println("Server " + thisSA + " abort received for tid " + rpcReq.tid.getTID());
 
             RPCRequest newReq = new RPCRequest("abort-reply", thisSA, rpcReq.tid, args);
             RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
@@ -330,6 +334,7 @@ public class Worker implements Runnable {
 	
         // commit the transaction, release all locks held by the txn
         // write everything from write set to data store
+    	DeadlockTest.print("committing");
         if (this.server.getAddress().equals(rpcReq.tid.getServerAddress())) {
             // sends "commit-prepare" to all servers
 	    ServerAddress thisSA = this.server.getAddress();
@@ -490,13 +495,18 @@ public class Worker implements Runnable {
      */
     public void cmhDeadlockReceiveMessage(RPCRequest req){
     	CMHProcessor cmhProcessor = new CMHProcessor(req.tid);
-    	System.out.println(req.args);
+    	
+    	DeadlockTest.print(req.args.toString());
     	HashMap<String, Object> args = (HashMap<String, Object>) req.args;
     	int initiator = ((Long) args.get("initiator")).intValue();
     	int to = ((Long) args.get("to")).intValue();
     	int from = ((Long) args.get("from")).intValue();
-    	if (initiator == to){
-	    System.out.println("Deadlock detected by messages");
+    	if (initiator == to && initiator != from){
+	    DeadlockTest.print("Deadlock detected by messages");
+	    //TransactionId tid = new TransactionId();
+     	RPCRequest args2 = new RPCRequest("abort", req.tid.getServerAddress(), req.tid,
+				 new HashMap<String, Object>());
+	    RPC.send(req.tid.getServerAddress(), "abort", "001", args2.toJSONObject());
     	} else {
 	    // continue to send messages
 	    cmhProcessor.propagateMessage(initiator, req.tid, server.getWFG(req.tid));
@@ -531,6 +541,7 @@ public class Worker implements Runnable {
             } else if (rpcReq.method.equals("commit")) {
 				this.commit(rpcReq);
             } else if (rpcReq.method.equals("deadlock")){
+            	DeadlockTest.print("received deadlocking msg");
             	this.processcmhMessage(rpcReq);
             } else if (rpcReq.method.equals("single-lock")){
             	this.getSingleLock(rpcReq);
