@@ -123,7 +123,7 @@ public class Worker implements Runnable {
 		
 		if (sendSA.equals(this.server.getAddress())) {
 		    this.server.lockW(key + table, tid);
-		    System.out.println("lockW " + key + table);
+		    //System.out.println("lockW " + key + table);
 		    HashSet<String> set = writeLocked.get(table);
 		    if (set == null) {
 			set = new HashSet<String>();
@@ -165,7 +165,7 @@ public class Worker implements Runnable {
 		
 		if (sendSA.equals(this.server.getAddress())) {
 		    this.server.lockR(key+table, tid);
-		    System.out.println("lockR " + key + table);
+		    //System.out.println("lockR " + key + table);
 		    String value = this.server.get(partNum, table, key);
 		    HashMap<String, String> kv = readSet.get(table);
 		    if (kv == null) {
@@ -301,7 +301,7 @@ public class Worker implements Runnable {
 	    Iterator keys_it = keys.iterator();
 	    while (keys_it.hasNext()) {
 		String n = (String) keys_it.next();
-		System.out.println("unlockW " + n + table);
+		//System.out.println("unlockW " + n + table);
 		this.server.unlockW(n + table, rpcReq.tid);
 	    }
         }
@@ -314,7 +314,7 @@ public class Worker implements Runnable {
 	    Iterator keys_it = keys.iterator();
 	    while (keys_it.hasNext()) {
 		String n = (String) keys_it.next();
-		System.out.println("unlockR " + n + table);
+		//System.out.println("unlockR " + n + table);
 		this.server.unlockR(n + table, rpcReq.tid);
 	    }	    
         }
@@ -457,7 +457,7 @@ public class Worker implements Runnable {
 		Iterator keys_it = keys.iterator();
 		while (keys_it.hasNext()) {
  		    String n = (String) keys_it.next();
-		    System.out.println("unlockW " + n + table);
+		    //System.out.println("unlockW " + n + table);
 		    this.server.unlockW(n + table, rpcReq.tid);
 		}
 	    }
@@ -470,7 +470,7 @@ public class Worker implements Runnable {
 		Iterator keys_it = keys.iterator();
 		while (keys_it.hasNext()) {
  		    String n = (String) keys_it.next();
-		    System.out.println("unlockR " + n + table);
+		    //System.out.println("unlockR " + n + table);
 		    this.server.unlockR(n + table, rpcReq.tid);
 		}
 	    }
@@ -548,7 +548,7 @@ public class Worker implements Runnable {
 		Iterator keys_it = keys.iterator();
 		while (keys_it.hasNext()) {
  		    String n = (String) keys_it.next();
-		    System.out.println("unlockW " + n + table);
+		    //System.out.println("unlockW " + n + table);
 		    this.server.unlockW(n + table, rpcReq.tid);
 		}
 	    }
@@ -561,7 +561,7 @@ public class Worker implements Runnable {
 		Iterator keys_it = keys.iterator();
 		while (keys_it.hasNext()) {
  		    String n = (String) keys_it.next();
-		    System.out.println("unlockR " + n + table);
+		    //System.out.println("unlockR " + n + table);
 		    this.server.unlockR(n + table, rpcReq.tid);
 		}	    
 	    }

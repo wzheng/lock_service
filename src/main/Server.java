@@ -164,7 +164,7 @@ public class Server implements Runnable  {
             Map<String, Object> params = reqIn.getNamedParams();
             RPCRequest rpcReq = new RPCRequest(method, params);
 	    
-            if (method.equals("start")) {
+            if (method.equals("start") && !this.activeWorkers.containsKey(rpcReq.tid)) {
 
 		if (this.reconfigState == ReconfigState.CHANGE) {
 		    // does not start new transactions during reconfiguration
