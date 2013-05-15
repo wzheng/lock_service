@@ -102,7 +102,7 @@ public class ScriptRunner {
 			boolean originalAutoCommit = connection.getAutoCommit();
 			try {
 				if (originalAutoCommit != this.autoCommit) {
-					connection.setAutoCommit(this.autoCommit);
+				    connection.setAutoCommit(this.autoCommit);
 				}
 				runScript(connection, reader);
 			} finally {
@@ -166,11 +166,11 @@ public class ScriptRunner {
 					final String sql = command.toString().trim();
 					if (stopOnError) {
 					    // hasResults = statement.execute(sql);
-					    hasResults = conn.executeQuery(null);
+					    hasResults = conn.executeQuery(null, null);
 					} else {
 					    try {
 						statement.execute(sql);
-						conn.executeQuery(null);
+						conn.executeQuery(null, null);
 					    } catch (SQLException e) {
 						printlnError("Error executing: " + sql);
 						printlnError(e);

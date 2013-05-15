@@ -57,13 +57,13 @@ public class DBConnect {
 	return true;
     }
 
-    // public void setAutoCommit(boolean ac) {
+    public void setAutoCommit(boolean ac) {
 	
-    // }
+    }
 
-    // public boolean getAutoCommit() {
-    // 	return false;
-    // }
+    public boolean getAutoCommit() {
+    	return false;
+    }
 
     public void rollback() throws SQLException {
 	PartitionTest.abort(currentSA, address, tid, rpc);

@@ -228,7 +228,7 @@ public abstract class BenchmarkModule {
     public final void createDatabase() {
         try {
             //Connection conn = this.makeConnection();
-        	DBConnect conn = this.makeConnection();
+	    DBConnect conn = this.makeConnection();
             this.createDatabase(this.workConf.getDBType(), conn);
             conn.close();
         } catch (SQLException ex) {
