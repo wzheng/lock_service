@@ -224,7 +224,7 @@ public class TPCCLoader extends Loader{
 			    + "                    ";
 			LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + t);
 			lastTimeMS = tmpTime;
-			this.conn.executeBatch(writes);
+			this.conn.executeBatch(writes, null);
 			this.conn.commit();
 			inserts.clear();
 		    }
@@ -259,7 +259,7 @@ public class TPCCLoader extends Loader{
 	    lastTimeMS = tmpTime;
 
 	    if (outputFiles == false) {
-		this.conn.executeBatch(writes);
+		this.conn.executeBatch(writes, null);
 		this.conn.commit();
 	    }
 
@@ -336,7 +336,7 @@ public class TPCCLoader extends Loader{
 		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_state);
 		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_zip);
 		    inserts.put(key, value);
-		    this.conn.executeQuery(writes);
+		    this.conn.executeQuery(writes, null);
 		    inserts.clear();
 		} else {
 		    String str = "";
@@ -490,7 +490,7 @@ public class TPCCLoader extends Loader{
 			    LOG.debug(etStr.substring(0, 30)
 				      + "  Writing record " + k + " of " + t);
 			    lastTimeMS = tmpTime;
-			    this.conn.executeBatch(writes);
+			    this.conn.executeBatch(writes, null);
 			    inserts.clear();
 			    this.conn.commit();
 			}
@@ -538,7 +538,7 @@ public class TPCCLoader extends Loader{
 		      + "  Writing final records " + k + " of " + t);
 	    lastTimeMS = tmpTime;
 	    if (outputFiles == false) {
-		this.conn.executeBatch(writes);
+		this.conn.executeBatch(writes, null);
 		this.conn.commit();
 	    }
 	    //transCommit();
@@ -634,7 +634,7 @@ public class TPCCLoader extends Loader{
 		    	// sql = sql.replaceFirst("\\?", district.d_state);
 		    	// sql = sql.replaceFirst("\\?", district.d_zip);
 			inserts.put(key, value);
-			this.conn.executeQuery(writes);
+			this.conn.executeQuery(writes, null);
 			inserts.clear();
 		    } else {
 		    	String str = "";
@@ -857,8 +857,8 @@ public class TPCCLoader extends Loader{
 				lastTimeMS = tmpTime;
 
 
-				this.conn.executeBatch(customerWrites);
-				this.conn.executeBatch(historyWrites);
+				this.conn.executeBatch(customerWrites, null);
+				this.conn.executeBatch(historyWrites, null);
 				this.conn.commit();
 				customerInserts.clear();
 				historyInserts.clear();
@@ -921,8 +921,8 @@ public class TPCCLoader extends Loader{
 	    LOG.debug(etStr.substring(0, 30) + "  Writing record " + k
 		      + " of " + t);
 	    lastTimeMS = tmpTime;
-	    this.conn.executeBatch(customerWrites);
-	    this.conn.executeBatch(historyWrites);
+	    this.conn.executeBatch(customerWrites, null);
+	    this.conn.executeBatch(historyWrites, null);
 	    this.conn.commit();
 	    customerInserts.clear();
 	    historyInserts.clear();
@@ -1163,9 +1163,9 @@ public class TPCCLoader extends Loader{
 				lastTimeMS = tmpTime;
 				if (outputFiles == false) {
 
-				    this.conn.executeBatch(ooWrites);
-				    this.conn.executeBatch(noWrites);
-				    this.conn.executeBatch(olWrites);
+				    this.conn.executeBatch(ooWrites, null);
+				    this.conn.executeBatch(noWrites, null);
+				    this.conn.executeBatch(olWrites, null);
 				    ooInserts.clear();
 				    noInserts.clear();
 				    olInserts.clear();
@@ -1183,9 +1183,9 @@ public class TPCCLoader extends Loader{
 
 	    LOG.debug("  Writing final records " + k + " of " + t);
 	    if (outputFiles == false) {
-		this.conn.executeBatch(ooWrites);
-		this.conn.executeBatch(noWrites);
-		this.conn.executeBatch(olWrites);
+		this.conn.executeBatch(ooWrites, null);
+		this.conn.executeBatch(noWrites, null);
+		this.conn.executeBatch(olWrites, null);
 		ooInserts.clear();
 		noInserts.clear();
 		olInserts.clear();
