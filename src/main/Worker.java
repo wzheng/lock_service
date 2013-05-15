@@ -69,7 +69,7 @@ public class Worker implements Runnable {
     	HashMap<String, Object> args = (HashMap<String, Object>) rpcReq.args;
     	TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
     	//String key = (String) args.get("write-lock");
-    	System.out.println("called getSingleLock via RPC");
+    	//System.out.println("called getSingleLock via RPC");
     	String key = (String) txnContext.write_set.keySet().toArray()[0];
     	lockOneFromWriteSet(key, rpcReq.tid, txnContext);
     }
@@ -214,23 +214,23 @@ public class Worker implements Runnable {
 					e.printStackTrace();
 				}
 		        if (task.isLocked()){
-		        	System.out.println("LOCK ACQUIRED");
+			    //System.out.println("LOCK ACQUIRED");
 		        	task.cancel();
 		        	break;
 		        }
 		        else{
-		        	System.out.println("NOT ACQUIRED");
-		        	if (flag){
-		        		getGlobalWFG(tid);
-		                DeadlockTest.print("WHOLEWFG for TID " + tid.getTID());
+			    //System.out.println("NOT ACQUIRED");
+			    if (flag){
+				getGlobalWFG(tid);
+				//DeadlockTest.print("WHOLEWFG for TID " + tid.getTID());
 		                String s = "";
 		                for (TransactionId x : wfg){
-		                	s += x.getTID() + ", ";
+				    s += x.getTID() + ", ";
 		                }
-		                DeadlockTest.print(s);
-		        		cmhProcessor.generateMessage(tid, wfg);
-		        		flag = false;
-		        	}
+		                //DeadlockTest.print(s);
+				cmhProcessor.generateMessage(tid, wfg);
+				flag = false;
+			    }
 		        }
 	        }
 			// periodically lock it and allow the thread to return
@@ -238,7 +238,7 @@ public class Worker implements Runnable {
 	        //Timer timer = new Timer();  //At this line a new Thread will be created
 	        //timer.schedule(new LockTask(this.server, key + table, tid), 0, 100); //delay in milliseconds
 		    //this.server.lockW(key + table, tid);
-		    System.out.println("lockW " + key + table + " by TID " + tid.getTID());
+		//System.out.println("lockW " + key + table + " by TID " + tid.getTID());
 		    HashSet<String> set = writeLocked.get(table);
 		    if (set == null) {
 			set = new HashSet<String>();
@@ -726,13 +726,13 @@ public class Worker implements Runnable {
     	}
     	wfgCounter++;
     	if (wfgCounter == server.getAllServers().size()){
-        DeadlockTest.print("WHOLEWFG for TID " + rpcReq.tid.getTID());
-        String s = "";
-        for (TransactionId x : wfg){
+	    //DeadlockTest.print("WHOLEWFG for TID " + rpcReq.tid.getTID());
+	    String s = "";
+	    for (TransactionId x : wfg){
         	s += x.getTID() + ", ";
-        }
-        DeadlockTest.print(s);
-		cmhProcessor.generateMessage(rpcReq.tid, wfg);
+	    }
+	    //DeadlockTest.print(s);
+	    cmhProcessor.generateMessage(rpcReq.tid, wfg);
     	}
 
     }
@@ -755,7 +755,7 @@ public class Worker implements Runnable {
      */
     public void cmhDeadlockReceiveMessage(RPCRequest req){
     	CMHProcessor cmhProcessor = new CMHProcessor();
-    	System.out.println(req.args);
+    	//System.out.println(req.args);
     	HashMap<String, Object> args = (HashMap<String, Object>) req.args;
     	int initiator = ((Long) args.get("initiator")).intValue();
     	int to = ((Long) args.get("to")).intValue();

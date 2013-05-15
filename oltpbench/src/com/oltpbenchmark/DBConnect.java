@@ -8,7 +8,9 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 
-import main.*;
+import main.RPC;
+import main.ServerAddress;
+import main.PartitionTest;
 import java.lang.Math;
 
 public class DBConnect {
@@ -24,8 +26,10 @@ public class DBConnect {
     ServerAddress currentSA;
     
     public DBConnect(String url, int port) {
-	address = new ServerAddress(2, "C", 8002);
-	RPC rpc = new RPC(address);
+	address = new ServerAddress(2, "C", 8000);
+	rpc = new RPC(address);
+	System.out.println("done");
+
 	contacts = new ArrayList<ServerAddress>();
 	contacts.add(new ServerAddress(0, "S0", 4444));
 	contacts.add(new ServerAddress(1, "S1", 4445));
@@ -36,9 +40,10 @@ public class DBConnect {
     }
 
     public void commit() throws SQLException {
-	System.out.println("Committing");
+	System.out.println("Committing " + tid);
 	PartitionTest.commit(currentSA, address, tid, rpc);
 	currentSA = null;
+	System.out.println("Committed " + tid);
     }
 
     public boolean executeQuery(HashMap<String, HashMap<String, String> > writes, HashMap<String, HashMap<String, String> > reads) {
@@ -52,8 +57,10 @@ public class DBConnect {
 	if (reads == null) {
 	    reads = new HashMap<String, HashMap<String, String> >();	    
 	}
+	System.out.println("Execute " + tid);
 	while (!PartitionTest.startTxn(currentSA, address, tid, writes, reads, rpc)) {
 	}
+	System.out.println("Done execute " + tid);
 	return true;
     }
 
@@ -85,8 +92,10 @@ public class DBConnect {
 	if (reads == null) {
 	    reads = new HashMap<String, HashMap<String, String> >();	    
 	}
+	System.out.println("Execute " + tid);
 	while (!PartitionTest.startTxn(currentSA, address, tid, writes, reads, rpc)) {
 	}
+	System.out.println("Done execute " + tid);
     }
 
     public Statement createStatement() {

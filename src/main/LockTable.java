@@ -45,11 +45,11 @@ public class LockTable {
                     write_locks.put(key, tid);
                     // updateState(tid, key, false);
                     synchronized(this){
-                    DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
-                    DeadlockTest.print("locks held:");
-                    for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
-                    	DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
-                    }
+			//DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
+			//DeadlockTest.print("locks held:");
+			for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
+			    //DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
+			}
                     }
                     return true;
                     //return;
@@ -58,11 +58,11 @@ public class LockTable {
                     write_locks.put(key, tid);
                     // updateState(tid, key, false);
                     synchronized(this){
-                    DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
-                    DeadlockTest.print("locks held:");
-                    for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
-                    	DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
-                    }
+			//DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
+			//DeadlockTest.print("locks held:");
+			for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
+			    //DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
+			}
                     }
                     return true;
                     //return;
@@ -90,7 +90,7 @@ public class LockTable {
      	     	RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
      	     					 new HashMap<String, Object>());
      	     	RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
-     	     	DeadlockTest.print("deadlock detected by timeout");
+     	     	//DeadlockTest.print("deadlock detected by timeout");
      	     	//break;
      	     }
                 if (flag){
@@ -100,18 +100,18 @@ public class LockTable {
                 	
                 }
                 synchronized(this){
-                DeadlockTest.print("lock NOT obtained by TID " + tid.getTID() + " for key " + key);
-                DeadlockTest.print("locks held:");
-                for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
-                	DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
-                }
-                DeadlockTest.print("wfg:");
+		    //DeadlockTest.print("lock NOT obtained by TID " + tid.getTID() + " for key " + key);
+		    //DeadlockTest.print("locks held:");
+		    for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
+                	//DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
+		    }
+		    //DeadlockTest.print("wfg:");
                 for (Entry<TransactionId, HashSet<TransactionId>> e : wfg.entrySet()){
                 	String s = "";
                 	for (TransactionId t : e.getValue()){
                 		s += t.getTID() + ", ";
                 	}
-                	DeadlockTest.print(e.getKey().getTID() + " : " + s);
+                	//DeadlockTest.print(e.getKey().getTID() + " : " + s);
                 }
                 }
                 return false;
@@ -184,7 +184,7 @@ public class LockTable {
         if (write_locks.get(key) != null && write_locks.get(key).equals(tid)) {
             write_locks.remove(key);
             // updateState(tid, key, true);
-            System.out.println("key " + key + " was unlocked by transaction " + tid.getTID());
+            //System.out.println("key " + key + " was unlocked by transaction " + tid.getTID());
         }
     }
 

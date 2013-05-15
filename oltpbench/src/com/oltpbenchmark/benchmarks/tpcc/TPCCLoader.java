@@ -161,8 +161,8 @@ public class TPCCLoader extends Loader{
 	writes.put(TPCCConstants.TABLENAME_ITEM, inserts);
 
 	try {
-	    String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_ITEM);
-	    String itemPrepStmt = baseStmt;
+	    //String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_ITEM);
+	    //String itemPrepStmt = baseStmt;
 
 
 	    now = new java.util.Date();
@@ -286,7 +286,7 @@ public class TPCCLoader extends Loader{
 
 	try {
 		    
-	    String whsePrepStmt = getInsertStatement(TPCCConstants.TABLENAME_WAREHOUSE);
+	    //String whsePrepStmt = getInsertStatement(TPCCConstants.TABLENAME_WAREHOUSE);
 	    
 
 	    now = new java.util.Date();
@@ -390,8 +390,8 @@ public class TPCCLoader extends Loader{
 
 	try {
 		    
-	    String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_STOCK);
-	    String stckPrepStmt = baseStmt;
+	    //String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_STOCK);
+	    //String stckPrepStmt = baseStmt;
 
 	    now = new java.util.Date();
 	    t = (whseKount * itemKount);
@@ -704,10 +704,10 @@ public class TPCCLoader extends Loader{
 
 
 	try {
-	    String custBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_CUSTOMER);
-	    String histBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_HISTORY);
-	    String custPrepStmt = custBaseStmt;
-	    String histPrepStmt = histBaseStmt;
+	    // String custBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_CUSTOMER);
+	    // String histBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_HISTORY);
+	    // String custPrepStmt = custBaseStmt;
+	    // String histPrepStmt = histBaseStmt;
 
 	    now = new java.util.Date();
 
@@ -975,13 +975,13 @@ public class TPCCLoader extends Loader{
 
 	try {
 	    
-	    String ordrBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_OPENORDER);
-	    String nworBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_NEWORDER);
-	    String orlnBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_ORDERLINE);
+	    // String ordrBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_OPENORDER);
+	    // String nworBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_NEWORDER);
+	    // String orlnBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_ORDERLINE);
 
-	    String ordrPrepStmt = ordrBaseStmt;
-	    String nworPrepStmt = nworBaseStmt;
-	    String orlnPrepStmt = orlnBaseStmt;
+	    // String ordrPrepStmt = ordrBaseStmt;
+	    // String nworPrepStmt = nworBaseStmt;
+	    // String orlnPrepStmt = orlnBaseStmt;
 
 	    if (outputFiles == true) {
 		out = new PrintWriter(new FileOutputStream(fileLocation

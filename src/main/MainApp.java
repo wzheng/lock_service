@@ -12,11 +12,7 @@ public class MainApp {
 
     public static void main(String[] args) {
 
-	// start client
-	ServerAddress client = new ServerAddress(2, "C", 8002);
-	RPC rpc = new RPC(client);
-
-	// Re-partitioning Test
+	// Start servers
 	PartitionTable pt1 = new PartitionTable();
 	PartitionTable pt2 = new PartitionTable();
 	PartitionTable pt3 = new PartitionTable();

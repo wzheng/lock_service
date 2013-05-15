@@ -16,6 +16,7 @@
     <property name='build.testoutput.dir'       location='${build.dir}/testoutput' />
 
     <path id='project.classpath'>
+        <pathelement path="${java.class.path}"/>
         <pathelement location='${build.dir}' />
         <pathelement location='${build.tests.dir}' />
         <fileset dir='${lib.dir}'>
@@ -23,7 +24,9 @@
             <include name='hibernate/*.jar' />
             <exclude name='ant.jar' />
         </fileset>
-        <pathelement path="${java.class.path}"/>
+	<fileset dir='../lib'>
+	  <include name='*.jar' />
+	</fileset>
     </path>
 
     <!-- *************************************** BUILDING *************************************** -->
@@ -38,9 +41,8 @@
       <javac debug="true" debuglevel="${debuglevel}" includeantruntime="false"
              destdir="${build.dir}"
              source="${javac.source}"
-             target="${javac.target}"
-	     classpath="../lib/jsonrpc2.jar">
-        <src path="../src/" />
+             target="${javac.target}">
+        <src path='../src/' />
 	<src path="${src.dir}" />
 	<include name="com/**" />
         <classpath refid="project.classpath" />
