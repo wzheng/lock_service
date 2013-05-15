@@ -51,12 +51,12 @@ public class DBConnect {
 	    tid++;
 	    currentSA = contacts.get((int) (Math.random() * contacts.size()));
 	}
-	if (writes == null) {
-	    writes = new HashMap<String, HashMap<String, String> >();
-	}
-	if (reads == null) {
-	    reads = new HashMap<String, HashMap<String, String> >();	    
-	}
+	// if (writes == null) {
+	//     writes = new HashMap<String, HashMap<String, String> >();
+	// }
+	// if (reads == null) {
+	//     reads = new HashMap<String, HashMap<String, String> >();	    
+	// }
 	System.out.println("Execute " + tid);
 	while (!PartitionTest.startTxn(currentSA, address, tid, writes, reads, rpc)) {
 	}
@@ -86,12 +86,12 @@ public class DBConnect {
 	    tid++;
 	    currentSA = contacts.get((int) (Math.random() * contacts.size()));
 	}
-	if (writes == null) {
-	    writes = new HashMap<String, HashMap<String, String> >();
-	}
-	if (reads == null) {
-	    reads = new HashMap<String, HashMap<String, String> >();	    
-	}
+	// if (writes == null) {
+	//     writes = new HashMap<String, HashMap<String, String> >();
+	// }
+	// if (reads == null) {
+	//     reads = new HashMap<String, HashMap<String, String> >();	    
+	// }
 	System.out.println("Execute " + tid);
 	while (!PartitionTest.startTxn(currentSA, address, tid, writes, reads, rpc)) {
 	}

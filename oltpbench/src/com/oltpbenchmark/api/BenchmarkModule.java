@@ -298,7 +298,7 @@ public abstract class BenchmarkModule {
             if (loader != null) {
                 //conn.setAutoCommit(false);
                 loader.load();
-                conn.commit();
+                //conn.commit();
                 
                 if (loader.getTableCounts().isEmpty() == false) {
                     LOG.info("Table Counts:\n" + loader.getTableCounts());

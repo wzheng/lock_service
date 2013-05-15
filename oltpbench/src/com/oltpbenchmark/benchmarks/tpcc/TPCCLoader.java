@@ -160,6 +160,10 @@ public class TPCCLoader extends Loader{
 	HashMap<String, String> inserts = new HashMap<String, String>();
 	writes.put(TPCCConstants.TABLENAME_ITEM, inserts);
 
+	HashMap<String, HashMap<String, String> > reads = new HashMap<String, HashMap<String, String> >();
+	reads.put(TPCCConstants.TABLENAME_ITEM, new HashMap<String, String>());
+
+
 	try {
 	    //String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_ITEM);
 	    //String itemPrepStmt = baseStmt;
@@ -224,7 +228,7 @@ public class TPCCLoader extends Loader{
 			    + "                    ";
 			LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + t);
 			lastTimeMS = tmpTime;
-			this.conn.executeBatch(writes, null);
+			this.conn.executeBatch(writes, reads);
 			this.conn.commit();
 			inserts.clear();
 		    }
@@ -259,7 +263,7 @@ public class TPCCLoader extends Loader{
 	    lastTimeMS = tmpTime;
 
 	    if (outputFiles == false) {
-		this.conn.executeBatch(writes, null);
+		this.conn.executeBatch(writes, reads);
 		this.conn.commit();
 	    }
 
@@ -283,6 +287,9 @@ public class TPCCLoader extends Loader{
 	HashMap<String, HashMap<String, String> > writes = new HashMap<String, HashMap<String, String> >();
 	HashMap<String, String> inserts = new HashMap<String, String>();
 	writes.put(TPCCConstants.TABLENAME_WAREHOUSE, inserts);
+	
+	HashMap<String, HashMap<String, String> > reads = new HashMap<String, HashMap<String, String> >();
+	reads.put(TPCCConstants.TABLENAME_WAREHOUSE, new HashMap<String, String>());
 
 	try {
 		    
@@ -336,7 +343,7 @@ public class TPCCLoader extends Loader{
 		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_state);
 		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_zip);
 		    inserts.put(key, value);
-		    this.conn.executeQuery(writes, null);
+		    this.conn.executeQuery(writes, reads);
 		    inserts.clear();
 		} else {
 		    String str = "";
@@ -384,9 +391,14 @@ public class TPCCLoader extends Loader{
 	int startORIGINAL = 0;
 
 	ArrayList<String> statements = new ArrayList<String>();
+
 	HashMap<String, HashMap<String, String> > writes = new HashMap<String, HashMap<String, String> >();
 	HashMap<String, String> inserts = new HashMap<String, String>();
 	writes.put(TPCCConstants.TABLENAME_STOCK, inserts);
+
+	HashMap<String, HashMap<String, String> > reads = new HashMap<String, HashMap<String, String> >();
+	reads.put(TPCCConstants.TABLENAME_STOCK, new HashMap<String, String>());
+
 
 	try {
 		    
@@ -446,22 +458,34 @@ public class TPCCLoader extends Loader{
 		    stock.s_dist_09 = TPCCUtil.randomStr(24);
 		    stock.s_dist_10 = TPCCUtil.randomStr(24);
 
+		    // stock.s_dist_01 = "";
+		    // stock.s_dist_02 = "";
+		    // stock.s_dist_03 = "";
+		    // stock.s_dist_04 = "";
+		    // stock.s_dist_05 = "";
+		    // stock.s_dist_06 = "";
+		    // stock.s_dist_07 = "";
+		    // stock.s_dist_08 = "";
+		    // stock.s_dist_09 = "";
+		    // stock.s_dist_10 = "";
+
 		    k++;
+
 		    if (outputFiles == false) {
 			//Primary key: s_w_id + s_i_id
 			String key = Integer.toString(stock.s_w_id) + Integer.toString(stock.s_i_id);
 			String value = Integer.toString(stock.s_quantity);
 			value += Float.toString(stock.s_ytd) + Integer.toString(stock.s_order_cnt) + Integer.toString(stock.s_remote_cnt);
-			value += stock.s_dist_01;
-			value += stock.s_dist_02;
-			value += stock.s_dist_03;
-			value += stock.s_dist_04;
-			value += stock.s_dist_05;
-			value += stock.s_dist_06;
-			value += stock.s_dist_07;
-			value += stock.s_dist_08;
-			value += stock.s_dist_09;
-			value += stock.s_dist_10;
+			value = value + stock.s_dist_01;
+			value = value + stock.s_dist_02;
+			value = value + stock.s_dist_03;
+			value = value + stock.s_dist_04;
+			value = value + stock.s_dist_05;
+			value = value + stock.s_dist_06;
+			value = value + stock.s_dist_07;
+			value = value + stock.s_dist_08;
+			value = value + stock.s_dist_09;
+			value = value + stock.s_dist_10;
 			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_w_id));
 			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_i_id));
 			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_quantity));
@@ -480,7 +504,9 @@ public class TPCCLoader extends Loader{
 			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_09);
 			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_10);
 			//statements.add(stckPrepStmt);
+			//System.out.println("key, value " + key + ", " + value);
 			inserts.put(key, value);
+			System.out.println("k is " + k);
 			//stckPrepStmt = baseStmt;
 			if ((k % configCommitCount) == 0) {
 			    long tmpTime = new java.util.Date().getTime();
@@ -490,40 +516,40 @@ public class TPCCLoader extends Loader{
 			    LOG.debug(etStr.substring(0, 30)
 				      + "  Writing record " + k + " of " + t);
 			    lastTimeMS = tmpTime;
-			    this.conn.executeBatch(writes, null);
-			    inserts.clear();
+			    this.conn.executeBatch(writes, reads);
 			    this.conn.commit();
+			    inserts.clear();
 			}
 		    } else {
-			String str = "";
-			str = str + stock.s_i_id + ",";
-			str = str + stock.s_w_id + ",";
-			str = str + stock.s_quantity + ",";
-			str = str + stock.s_ytd + ",";
-			str = str + stock.s_order_cnt + ",";
-			str = str + stock.s_remote_cnt + ",";
-			str = str + stock.s_data + ",";
-			str = str + stock.s_dist_01 + ",";
-			str = str + stock.s_dist_02 + ",";
-			str = str + stock.s_dist_03 + ",";
-			str = str + stock.s_dist_04 + ",";
-			str = str + stock.s_dist_05 + ",";
-			str = str + stock.s_dist_06 + ",";
-			str = str + stock.s_dist_07 + ",";
-			str = str + stock.s_dist_08 + ",";
-			str = str + stock.s_dist_09 + ",";
-			str = str + stock.s_dist_10;
-			out.println(str);
+			// String str = "";
+			// str = str + stock.s_i_id + ",";
+			// str = str + stock.s_w_id + ",";
+			// str = str + stock.s_quantity + ",";
+			// str = str + stock.s_ytd + ",";
+			// str = str + stock.s_order_cnt + ",";
+			// str = str + stock.s_remote_cnt + ",";
+			// str = str + stock.s_data + ",";
+			// str = str + stock.s_dist_01 + ",";
+			// str = str + stock.s_dist_02 + ",";
+			// str = str + stock.s_dist_03 + ",";
+			// str = str + stock.s_dist_04 + ",";
+			// str = str + stock.s_dist_05 + ",";
+			// str = str + stock.s_dist_06 + ",";
+			// str = str + stock.s_dist_07 + ",";
+			// str = str + stock.s_dist_08 + ",";
+			// str = str + stock.s_dist_09 + ",";
+			// str = str + stock.s_dist_10;
+			// out.println(str);
 
-			if ((k % configCommitCount) == 0) {
-			    long tmpTime = new java.util.Date().getTime();
-			    String etStr = "  Elasped Time(ms): "
-				+ ((tmpTime - lastTimeMS) / 1000.000)
-				+ "                    ";
-			    LOG.debug(etStr.substring(0, 30)
-				      + "  Writing record " + k + " of " + t);
-			    lastTimeMS = tmpTime;
-			}
+			// if ((k % configCommitCount) == 0) {
+			//     long tmpTime = new java.util.Date().getTime();
+			//     String etStr = "  Elasped Time(ms): "
+			// 	+ ((tmpTime - lastTimeMS) / 1000.000)
+			// 	+ "                    ";
+			//     LOG.debug(etStr.substring(0, 30)
+			// 	      + "  Writing record " + k + " of " + t);
+			//     lastTimeMS = tmpTime;
+			// }
 		    }
 
 		} // end for [w]
@@ -538,7 +564,7 @@ public class TPCCLoader extends Loader{
 		      + "  Writing final records " + k + " of " + t);
 	    lastTimeMS = tmpTime;
 	    if (outputFiles == false) {
-		this.conn.executeBatch(writes, null);
+		this.conn.executeBatch(writes, reads);
 		this.conn.commit();
 	    }
 	    //transCommit();
@@ -1245,14 +1271,20 @@ public class TPCCLoader extends Loader{
 	long startTimeMS = new java.util.Date().getTime();
 	lastTimeMS = startTimeMS;
 
-	long totalRows = loadWhse(numWarehouses);
-	totalRows += loadItem(configItemCount);
-	totalRows += loadStock(numWarehouses, configItemCount);
-	totalRows += loadDist(numWarehouses, configDistPerWhse);
-	totalRows += loadCust(numWarehouses, configDistPerWhse,
-			      configCustPerDist);
-	totalRows += loadOrder(numWarehouses, configDistPerWhse,
-			       configCustPerDist);
+	// System.out.println("Loading warehouses");
+	// long totalRows = loadWhse(numWarehouses);
+	// System.out.println("Loading items");
+	// totalRows += loadItem(configItemCount);
+	System.out.println("Loading stocks " + configItemCount);
+	long totalRows = loadStock(numWarehouses, configItemCount);
+	// System.out.println("Loading dist");
+	// totalRows += loadDist(numWarehouses, configDistPerWhse);
+	// System.out.println("Loading customers");
+	// totalRows += loadCust(numWarehouses, configDistPerWhse,
+	// 		      configCustPerDist);
+	// System.out.println("Loading orders");
+	// totalRows += loadOrder(numWarehouses, configDistPerWhse,
+	// 		       configCustPerDist);
 
 	long runTimeMS = (new java.util.Date().getTime()) + 1 - startTimeMS;
 	endDate = new java.util.Date();
@@ -1262,7 +1294,7 @@ public class TPCCLoader extends Loader{
 	LOG.debug("       End Time = " + endDate);
 	LOG.debug("       Run Time = " + (int) runTimeMS / 1000 + " Seconds");
 	LOG.debug("    Rows Loaded = " + totalRows + " Rows");
-	LOG.debug("Rows Per Second = " + (totalRows / (runTimeMS / 1000)) + " Rows/Sec");
+	//LOG.debug("Rows Per Second = " + (totalRows / (runTimeMS / 1000)) + " Rows/Sec");
 	LOG.debug("------------------------------------------------------");
 	
     }

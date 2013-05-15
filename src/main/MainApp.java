@@ -44,7 +44,7 @@ public class MainApp {
 	servers.add(sa2);
 	servers.add(sa3);
 
-	ServerStarter s1 = new ServerStarter(sa1, pt1, true, servers);
+	ServerStarter s1 = new ServerStarter(sa1, pt1, false, servers);
 	ServerStarter s2 = new ServerStarter(sa2, pt2, false, servers);
 	ServerStarter s3 = new ServerStarter(sa3, pt3, false, servers);
 

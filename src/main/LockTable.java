@@ -47,9 +47,9 @@ public class LockTable {
                     synchronized(this){
 			//DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
 			//DeadlockTest.print("locks held:");
-			for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
+			//for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
 			    //DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
-			}
+			//}
                     }
                     return true;
                     //return;
@@ -60,9 +60,9 @@ public class LockTable {
                     synchronized(this){
 			//DeadlockTest.print("lock successfully obtained by TID " + tid.getTID() + " for key " + key);
 			//DeadlockTest.print("locks held:");
-			for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
+			//for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
 			    //DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
-			}
+			//}
                     }
                     return true;
                     //return;
@@ -94,25 +94,25 @@ public class LockTable {
      	     	//break;
      	     }
                 if (flag){
-                	//cmhDeadlockInitiate(tid);
-                	flag = false;
+		    //cmhDeadlockInitiate(tid);
+		    flag = false;
                 } else {
                 	
                 }
                 synchronized(this){
 		    //DeadlockTest.print("lock NOT obtained by TID " + tid.getTID() + " for key " + key);
 		    //DeadlockTest.print("locks held:");
-		    for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
-                	//DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
-		    }
+		    //for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
+		    //DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
+		    //}
 		    //DeadlockTest.print("wfg:");
-                for (Entry<TransactionId, HashSet<TransactionId>> e : wfg.entrySet()){
-                	String s = "";
-                	for (TransactionId t : e.getValue()){
-                		s += t.getTID() + ", ";
-                	}
-                	//DeadlockTest.print(e.getKey().getTID() + " : " + s);
-                }
+		    // for (Entry<TransactionId, HashSet<TransactionId>> e : wfg.entrySet()){
+		    // 	String s = "";
+		    // 	for (TransactionId t : e.getValue()){
+		    // 		s += t.getTID() + ", ";
+		    // 	}
+		    // 	//DeadlockTest.print(e.getKey().getTID() + " : " + s);
+		    // }
                 }
                 return false;
                 //checkDeadLock(tid);
@@ -164,7 +164,7 @@ public class LockTable {
                     ret.add(wtid);
                 }
                 wfg.put(tid, ret);
-                cmhDeadlockInitiate(tid);
+                //cmhDeadlockInitiate(tid);
                 //checkDeadLock(tid);
             }
         }
