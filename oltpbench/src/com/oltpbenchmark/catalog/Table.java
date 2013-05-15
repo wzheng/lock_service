@@ -32,9 +32,9 @@ import java.util.List;
  * @author Djellel
  */
 public class Table extends AbstractCatalogObject {
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 	
-	private final List<Column> columns = new ArrayList<Column>();
+    private final List<Column> columns = new ArrayList<Column>();
     private final List<IntegrityConstraint> constraints = new ArrayList<IntegrityConstraint>();
     private final List<String> primaryKeys = new ArrayList<String>();
     private final List<Index> indexes = new ArrayList<Index>();

@@ -8,6 +8,7 @@
     <!-- *************************************** CONFIGURATION *************************************** -->
     
     <property name="src.dir"                    location="src" />
+    <property name="src2.dir"                    location="../src" />
     <property name="tests.dir"                  location="tests" />
     <property name="lib.dir"                    location="lib" />
     <property name="build.dir"                  location="build" />
@@ -29,38 +30,41 @@
     
     <target name="build"
             description="Build the entire framework">
-        <fileset dir="${src.dir}" excludes="**/*.launch, **/*.java"/>
-        <echo message="${ant.project.name}: ${ant.file}"/>
-        
-        <mkdir dir="${build.dir}/META-INF"/>
-        <copy file="${src.dir}/META-INF/persistence.xml" todir="${build.dir}/META-INF"/>
-        <javac debug="true" debuglevel="${debuglevel}" includeantruntime="false"
-               destdir="${build.dir}"
-               source="${javac.source}"
-               target="${javac.target}">
-            <src path="${src.dir}"/>
-            <classpath refid="project.classpath" />
-        </javac>
-        
-        <!-- Copy Files -->
-        <copy todir="${build.dir}">
-            <fileset dir="${src.dir}">
-                <include name="**/*-ddl.sql"/>
-                <include name="**/*-dialects.xml"/>
-                <include name="**/*.xsd"/>
-                <include name="**/histogram.*.gz"/>
-                <include name="**/table.*.gz"/>
-            </fileset>
-        </copy>
-        
-        <mkdir dir="${build.tests.dir}"/>
-        <javac debug="true" debuglevel="${debuglevel}" includeantruntime="false"
-               destdir="${build.tests.dir}"
-               source="${javac.source}"
-               target="${javac.target}">
-            <src path="${tests.dir}"/>
-            <classpath refid="project.classpath" />
-        </javac>
+      <fileset dir="${src.dir}" excludes="**/*.launch, **/*.java"/>
+      <echo message="${ant.project.name}: ${ant.file}"/>
+      
+      <mkdir dir="${build.dir}/META-INF"/>
+      <copy file="${src.dir}/META-INF/persistence.xml" todir="${build.dir}/META-INF"/>
+      <javac debug="true" debuglevel="${debuglevel}" includeantruntime="false"
+             destdir="${build.dir}"
+             source="${javac.source}"
+             target="${javac.target}"
+	     classpath="../lib/jsonrpc2.jar">
+        <src path="../src/" />
+	<src path="${src.dir}" />
+	<include name="com/**" />
+        <classpath refid="project.classpath" />
+      </javac>
+
+      <!-- Copy Files -->
+      <copy todir="${build.dir}">
+        <fileset dir="${src.dir}">
+          <include name="**/*-ddl.sql"/>
+          <include name="**/*-dialects.xml"/>
+          <include name="**/*.xsd"/>
+          <include name="**/histogram.*.gz"/>
+          <include name="**/table.*.gz"/>
+        </fileset>
+      </copy>
+      
+      <mkdir dir="${build.tests.dir}"/>
+      <javac debug="true" debuglevel="${debuglevel}" includeantruntime="false"
+             destdir="${build.tests.dir}"
+             source="${javac.source}"
+             target="${javac.target}">
+        <src path="${tests.dir}"/>
+        <classpath refid="project.classpath" />
+      </javac>
     </target>
 
     <target name="clean" description="Destroys all generated files and dirs.">

@@ -10,27 +10,16 @@ import java.net.*;
 
 import main.*;
 
-
-import com.mysql.jdbc.Connection;
-
 public class DBConnect {
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
+    private ServerAddress sa;
     private RPC rpc;
     
     public DBConnect(String url, int port) {
-		try {
-		    socket = new Socket(url, port);
-		    out = new PrintWriter(socket.getOutputStream(), true);
-		    in = new BufferedReader( new InputStreamReader(socket.getInputStream()) );
-		} catch (UnknownHostException e) {
-		    System.err.println("Don't know about host: " + url + ":" + port);
-	        System.exit(1);
-		} catch (IOException e) {
-		    System.err.println("Couldn't get I/O for the connection to: " + url + ":" + port);
-	        System.exit(1);
-		}
+	sa = new ServerAddress(2, "C", port);
+	RPC rpc = new RPC(sa);
     }
 
     public void commit() throws SQLException {
@@ -38,14 +27,8 @@ public class DBConnect {
     	this.out.println("Commit");
     }
 
-
-    public boolean executeQuery(String sql) {
-    	System.out.println("executing: " + sql);
-		this.out.println("Start");
-		this.out.println(sql);
-		this.out.println("End");
-
-		return true;
+    public boolean executeQuery(HashMap<String, HashMap<String, String> > writes) {
+	return true;
     }
 
     public void setAutoCommit(boolean ac) {
@@ -53,7 +36,7 @@ public class DBConnect {
     }
 
     public boolean getAutoCommit() {
-		return false;
+	return false;
     }
 
     public void rollback() throws SQLException {
@@ -65,35 +48,28 @@ public class DBConnect {
     	System.out.println("closing");
     }
 
-    public void executeBatch(ArrayList<String> sqlStatements) {
+    public void executeBatch(HashMap<String, HashMap<String, String> > writes) {
 	
     }
 
-	public Statement createStatement() {
-		return null;
-	}
+    public Statement createStatement() {
+	return null;
+    }
 
-	public void setTransactionIsolation(int isolationMode) {
-
+    public void setTransactionIsolation(int isolationMode) {
 		
-	}
+    }
 
-	public void rollback(Savepoint savepoint) throws SQLException {
-		
-		
-	}
+    public void rollback(Savepoint savepoint) throws SQLException {
+	
+    }
 
-	public PreparedStatement prepareStatement(String sql) {
-
-		return null;
-	}
+    public PreparedStatement prepareStatement(String sql) {
+	return null;
+    }
 
 
-	public PreparedStatement prepareStatement(String sql, int[] is) {
-
-		return null;
-	}
-
-
-    
+    public PreparedStatement prepareStatement(String sql, int[] is) {
+	return null;
+    }
 }
