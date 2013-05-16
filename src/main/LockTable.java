@@ -99,23 +99,6 @@ public class LockTable {
                 } else {
                 	
                 }
-<<<<<<< HEAD
-//                synchronized(this){
-//                DeadlockTest.print("lock NOT obtained by TID " + tid.getTID() + " for key " + key);
-//                DeadlockTest.print("locks held:");
-//                for (Map.Entry<String, TransactionId> e : write_locks.entrySet()){
-//                	DeadlockTest.print(e.getKey() + " : " + e.getValue().getTID());
-//                }
-//                DeadlockTest.print("wfg:");
-//                for (Entry<TransactionId, HashSet<TransactionId>> e : wfg.entrySet()){
-//                	String s = "";
-//                	for (TransactionId t : e.getValue()){
-//                		s += t.getTID() + ", ";
-//                	}
-//                	DeadlockTest.print(e.getKey().getTID() + " : " + s);
-//                }
-//                }
-=======
                 synchronized(this){
 		    //DeadlockTest.print("lock NOT obtained by TID " + tid.getTID() + " for key " + key);
 		    //DeadlockTest.print("locks held:");
@@ -131,7 +114,6 @@ public class LockTable {
 		    // 	//DeadlockTest.print(e.getKey().getTID() + " : " + s);
 		    // }
                 }
->>>>>>> 8aeae5614815990d4ee700144031b1c6e8fcbd51
                 return false;
                 //checkDeadLock(tid);
             }
