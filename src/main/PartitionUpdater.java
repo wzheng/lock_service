@@ -84,18 +84,19 @@ public class PartitionUpdater implements Runnable {
     public void changeLocalConfig(HashMap<Integer, ServerAddress> changes) {
 	this.server.setReconfigState(ReconfigState.CHANGE);
 	
-	System.out.println("Wait for all txns to stop");
+	System.out.println(this.server.getAddress() + " Wait for all txns to stop");
 	
 	// Wait for all of the current transactions to commit/abort
 	while (this.server.getNumWorkers() > 0) {
 	    try {
-		Thread.sleep(50);
+		System.out.println(this.server.getAddress() + "'s active workers " + this.server.getActiveWorkers());
+		Thread.sleep(1000);
 	    } catch (InterruptedException e) {
 		System.err.println("Thread interrupted");
 	    }
 	}
 
-	System.out.println("Send/receive partitions");
+	System.out.println(this.server.getAddress() + "Send/receive partitions");
 
 	// Send/receive all partitions
 	HashMap<Integer, ServerAddress> send = new HashMap<Integer, ServerAddress>();
@@ -112,7 +113,7 @@ public class PartitionUpdater implements Runnable {
 		receive.put(partition, table.getServer(partition));
 	    } else if (table.getServer(partition).equals(thisSA)) {
 		// needs to send a partition
-		System.out.println(thisSA + " needs to send a partition " + partition + " " + this.server.getPartitionData(partition));
+		//System.out.println(thisSA + " needs to send a partition " + partition + " " + this.server.getPartitionData(partition));
 		send.put(partition, sa);
 	    }
 	}
@@ -150,7 +151,7 @@ public class PartitionUpdater implements Runnable {
 		RPCRequest receiveReq = (RPCRequest) obj;
 		HashMap<String, Object> args = (HashMap<String, Object>) receiveReq.args;
 
-		System.out.println(thisSA + ": received something... " + args.get("Method"));
+		//System.out.println(thisSA + ": received " + args.get("Method") + " from " + receiveReq.replyAddress);
 		
 		if (args.get("Method").equals("Send")) {
 		    int partition = ((Long) args.get("Partition Number")).intValue();
@@ -179,6 +180,21 @@ public class PartitionUpdater implements Runnable {
 
     // master reconfiguration
     public void configureMaster() {
+
+	// FOR TESTING ONLY! Comment out if not running benchmarks
+	while (true) {
+	    Object obj = queue.get();
+	    if (obj.equals("")) {
+		continue;
+	    }
+	    
+	    RPCRequest reqIn = (RPCRequest) obj;
+	    HashMap<String, Object> args = (HashMap<String, Object>) reqIn.args;
+	    if (args.get("Method").equals("start-configuration")) {
+		//System.out.println("received");
+		break;
+	    }
+	}
 
         // periodically contact all ther servers for AF information
 
@@ -260,12 +276,12 @@ public class PartitionUpdater implements Runnable {
 		    }
 		}
 
-		System.out.println(this.server.getAddress());
-		System.out.println("Before");
-		System.out.println(this.server.getPartitionTable());
+		// System.out.println(this.server.getAddress());
+		// System.out.println("Before");
+		// System.out.println(this.server.getPartitionTable());
 		this.changeLocalConfig(newTable);
-		System.out.println("After");
-		System.out.println(this.server.getPartitionTable());
+		// System.out.println("After");
+		// System.out.println(this.server.getPartitionTable());
 
 		// TODO: should not start the next reconfiguration until everyone has reconfigured
 		
@@ -288,15 +304,19 @@ public class PartitionUpdater implements Runnable {
 		    RPCRequest doneReq = (RPCRequest) obj;
 		    if (((HashMap<String, Object>) doneReq.args).get("Method").equals("changeConfig-done")) {
 			waitAddresses.remove(doneReq.replyAddress);
+		    } else {
+		    	queue.put(doneReq);
 		    }
 
 		}
+
+		System.out.println("Config changed\n\n");
 	    }
 
 	    try {
-		Thread.sleep(4000);
+		Thread.sleep(2000);
 	    } catch (InterruptedException e) {
-
+		System.err.println("Sleep failed");
 	    }
 	}
 
@@ -340,18 +360,20 @@ public class PartitionUpdater implements Runnable {
 		    changes.put(partition, sa);
 		}
 
-		System.out.println(this.server.getAddress());
-		System.out.println("Before");
-		System.out.println(this.server.getPartitionTable());
+		// System.out.println(this.server.getAddress());
+		// System.out.println("Before");
+		// System.out.println(this.server.getPartitionTable());
 		this.changeLocalConfig(changes);
-		System.out.println("After");
-		System.out.println(this.server.getPartitionTable());
+		// System.out.println("After");
+		// System.out.println(this.server.getPartitionTable());
 		
 		// send response back to master
 		HashMap<String, Object> doneArgs = new HashMap<String, Object>();
 		doneArgs.put("Method", "changeConfig-done");
 		RPCRequest doneReq = new RPCRequest("reconfigure", thisSA, reqIn.tid, doneArgs);
 		RPC.send(reqIn.replyAddress, "reconfigure", "001", doneReq.toJSONObject());
+	    } else {
+		queue.put(reqIn);
 	    }
         }
     }

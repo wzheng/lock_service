@@ -24,7 +24,7 @@ public class PartitionTest {
 	JSONRPC2Request resp = rpc.receive();
 	HashMap<String, Object> params = (HashMap<String, Object>) resp.getNamedParams();
 	if (resp.getMethod().equals("abort-done")) {
-	    //System.out.println("Transaction " + tidNum + " start is aborted");
+	    System.out.println("Transaction " + tidNum + " start is aborted");
 	    return false;
 	} else if (resp.getMethod().equals("start-done")) {
 	    //System.out.println("Transaction " + tidNum + " start is done");

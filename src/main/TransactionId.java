@@ -41,4 +41,11 @@ public class TransactionId {
 	return tid;
     }
 
+    public String toString() {
+
+	String str = "";
+	str += "< " + sa + " -- " + tid + " >";
+	return str;
+    }
+
 }

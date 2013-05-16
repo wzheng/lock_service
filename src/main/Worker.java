@@ -99,6 +99,15 @@ public class Worker implements Runnable {
         }
 
         TransactionId tid = rpcReq.tid;
+	
+	Long version = (Long) ((HashMap<String, Object>) rpcReq.args).get("Partition Version");
+	if (!this.server.getAddress().equals(tid.getServerAddress()) && (version.intValue() != this.server.getPartitionTable().version)) {
+	    HashMap<String, Object> args = new HashMap<String, Object>();
+	    RPCRequest newReq = new RPCRequest("abort-reply", this.server.getAddress(), rpcReq.tid, args);
+	    RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
+	    this.done = true;
+	    return ;
+	}
 
         Iterator<String> write_set_it = txnContext.write_set.keySet().iterator();
         Iterator<String> read_set_it = txnContext.read_set.keySet().iterator();
@@ -253,6 +262,7 @@ public class Worker implements Runnable {
 		    receivedSA.add(receivedReq.replyAddress);
 		    waitServers.remove(receivedReq.replyAddress);
 		} else {
+		    //System.out.println("StartTxn(): got + " + receivedReq.method);
 		    queue.put(obj);
 		}
             }
@@ -265,26 +275,16 @@ public class Worker implements Runnable {
 	    
         } else {
 
-            // reply to original server with read-set information
-	    Long version = (Long) ((HashMap<String, Object>) rpcReq.args).get("Partition Version");
-	    if (version.intValue() != this.server.getPartitionTable().version) {
+	    // reply to original server with read-set information
+	    ServerAddress thisSA = this.server.getAddress();
+	    HashMap<String, Object> args = new HashMap<String, Object>();
+	    args.put("State", "OK");
+	    args.put("Read Set", readSet);
+	    RPCRequest newReq = new RPCRequest("start-reply", thisSA, tid, args);
 
-                HashMap<String, Object> args = new HashMap<String, Object>();
-                RPCRequest newReq = new RPCRequest("abort-reply", this.server.getAddress(), rpcReq.tid, args);
-                RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
-		
-	    } else {
+	    RPC.send(rpcReq.replyAddress, "start-reply", "001", newReq.toJSONObject());
+	    readSet.clear();
 
-		ServerAddress thisSA = this.server.getAddress();
-		HashMap<String, Object> args = new HashMap<String, Object>();
-		args.put("State", "OK");
-		args.put("Read Set", readSet);
-		RPCRequest newReq = new RPCRequest("start-reply", thisSA, tid, args);
-
-		RPC.send(rpcReq.replyAddress, "start-reply", "001", newReq.toJSONObject());
-		readSet.clear();
-
-	    }
         }
 
     }
