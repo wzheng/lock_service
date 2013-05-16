@@ -3,6 +3,7 @@
 bin/
 .git
 .gitignore
+gitignore2
 oltpbench/bin/
 oltpbench/build/
 oltpbench/output.raw
