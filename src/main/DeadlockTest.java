@@ -284,6 +284,10 @@ JSONRPC2Request resp = rpc.receive();
 	keySet2.add("1");
 	DeadlockTest.DeadlockTester t2 = t.new DeadlockTester(servers, 1000, new ServerAddress(4, "T2", 8889), keySet2);
 
+	ArrayList<String> keySet3 = new ArrayList<String>();
+	keySet2.add("5");
+	keySet2.add("1");
+	DeadlockTest.DeadlockTester t3 = t.new DeadlockTester(servers, 10000, new ServerAddress(4, "T3", 8890), keySet3);
 	(new Thread(t1)).start();
 	(new Thread(t2)).start();
 

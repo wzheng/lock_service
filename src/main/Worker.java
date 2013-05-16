@@ -44,7 +44,8 @@ public class Worker implements Runnable {
     //private HashSet<TransactionId> wfg;
     //private int wfgCounter = 0;
 
-    private WFGWorker wfgWorker;
+    //private WFGWorker wfgWorker;
+    long startTime;
     
     public boolean isDeadlocked;
     public Worker(Server server, CommunicationQ queue) {
@@ -54,7 +55,7 @@ public class Worker implements Runnable {
         cohorts = new HashSet<ServerAddress>();
         done = false;
         //wfg = new HashSet<TransactionId>();
-        wfgWorker = null;
+        //wfgWorker = null;
         isDeadlocked = false;
 
 	this.writeLocked = new HashMap<String, HashSet<String> >();
@@ -70,8 +71,8 @@ public class Worker implements Runnable {
 	//cmhThread.start();
     }
 
-    public void setWFGWorker(WFGWorker w){
-    	this.wfgWorker = w;
+    public boolean isDone(){
+    	return done;
     }
     public void getSingleLock(RPCRequest rpcReq){
     	HashMap<String, Object> args = (HashMap<String, Object>) rpcReq.args;
@@ -256,6 +257,7 @@ public class Worker implements Runnable {
     
 
     public void startTransaction(RPCRequest rpcReq) {
+    	startTime = System.currentTimeMillis();
         TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
 
 	//System.out.println("Start transaction " + rpcReq.tid.getTID());
@@ -302,7 +304,7 @@ public class Worker implements Runnable {
 		if (sendSA.equals(this.server.getAddress())) {
 		    long start = System.currentTimeMillis();
 		    while(!this.server.lockW(key+table, tid)){
-			if (System.currentTimeMillis() - start > 300){
+			if (System.currentTimeMillis() - start > 500){
 			    break;
 			}
 
@@ -311,18 +313,19 @@ public class Worker implements Runnable {
 			if (server.getWFG(tid) != null){
 			    cmhProcessor.generateMessage(tid, server.getWFG(tid));
 			}
+			
 			if (isDeadlocked){
 			    break;
 			}
-				
+			
 		    }
 		    if (isDeadlocked){
-			System.out.println("should abort now");
-			HashMap<String, Object> args = new HashMap<String, Object>();
-			RPCRequest newReq = new RPCRequest("abort", server.getAddress(), rpcReq.tid, args);
-			RPC.send(server.getAddress(), "abort", "001", newReq.toJSONObject());
-			return;
-                
+		    	System.out.println("time to find deadlock: " + (System.currentTimeMillis() - startTime));
+				System.out.println("should abort now");
+				HashMap<String, Object> args = new HashMap<String, Object>();
+				RPCRequest newReq = new RPCRequest("abort", server.getAddress(), rpcReq.tid, args);
+				RPC.send(server.getAddress(), "abort", "001", newReq.toJSONObject());
+				return;
 		    }
 		    /*
 		      Timer timer = new Timer();  //At this line a new Thread will be created
@@ -601,7 +604,7 @@ public class Worker implements Runnable {
             RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
 	    this.done = true;
         }
-        System.out.println("abort complete");
+        System.out.println("abort complete for tid " + rpcReq.tid.getTID());
     }
 
     // TODO: in the future, when there are machine failures/other failures, should

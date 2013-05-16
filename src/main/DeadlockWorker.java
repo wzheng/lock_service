@@ -99,7 +99,7 @@ import net.minidev.json.JSONObject;
 
 		@Override
     	public void run(){
-	        while (!done) {
+	        while (!worker.isDone()) {
 	            Object obj = queue.get();
 
 	            if (obj.equals("")) {
@@ -153,8 +153,9 @@ import net.minidev.json.JSONObject;
 //	    	/System.out.println("cmh message received initiator: " + initiator + " from: " + from + " to: " + to);
 	    	if (initiator == to ){
 	    		//(server.getWFG(req.tid) != null && server.getWFG(req.tid).contains(new TransactionId(server.getAddress(), to)))
-	    		System.out.println("Deadlock detected by messages");
+	    		//System.out.println("Deadlock detected by messages");
 	    		worker.isDeadlocked = true;
+	    		this.done = true;
 	    	} else {
 	    		// continue to send messages
 	    		//System.out.println("propaganda: " + initiatorTid.getTID() + ", " + toTid.getTID() + server.getWFG(toTid));
