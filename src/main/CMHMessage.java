@@ -9,6 +9,9 @@ public class CMHMessage {
     private int initiator;
     private int from;
     private int to;
+    private TransactionId initiatorTid;
+    private TransactionId fromTid;
+    private TransactionId toTid;
 
     /**
      * 
@@ -19,8 +22,11 @@ public class CMHMessage {
     public CMHMessage(TransactionId initiatorTID, TransactionId fromTID,
             TransactionId toTID) {
         this.initiator = initiatorTID.getTID();
+        this.initiatorTid = initiatorTID;
         this.from = fromTID.getTID();
+        this.fromTid = fromTID;
         this.to = toTID.getTID();
+        this.toTid = toTID;
     }
 
     public CMHMessage(int initiator, int from, int to) {
@@ -49,6 +55,15 @@ public class CMHMessage {
         params.put("initiator", initiator);
         params.put("from", from);
         params.put("to", to);
+        params.put("initiatorServerNum", initiatorTid.getServerAddress().getServerNumber());
+        params.put("fromServerNum", fromTid.getServerAddress().getServerNumber());
+        params.put("toServerNum", toTid.getServerAddress().getServerNumber());
+        params.put("initiatorServerName", initiatorTid.getServerAddress().getServerName());
+        params.put("fromServerName", fromTid.getServerAddress().getServerName());
+        params.put("toServerName", toTid.getServerAddress().getServerName());
+        params.put("initiatorServerPort", initiatorTid.getServerAddress().getServerPort());
+        params.put("fromServerPort", fromTid.getServerAddress().getServerPort());
+        params.put("toServerPort", toTid.getServerAddress().getServerPort());
         return params;
     }
 

@@ -21,6 +21,7 @@ public class CMHProcessor implements Runnable {
     private RPC rpc;
 
     boolean deadlocked = false;
+    Server server;
     
     ArrayBlockingQueue<String> q;
     
@@ -34,8 +35,14 @@ public class CMHProcessor implements Runnable {
      */
     private Set<Integer> waitingForTIDs;
 
-    public CMHProcessor() {
+    public CMHProcessor(Server server) {
         //this.currentServer = transaction.getServerAddress();
+        this.messagesToSend = new HashSet<CMHMessage>();
+        this.nextServerAddresses = new HashSet<ServerAddress>();
+        this.waitingForTIDs = new HashSet<Integer>();
+        this.server = server;
+    }
+    public CMHProcessor(){
         this.messagesToSend = new HashSet<CMHMessage>();
         this.nextServerAddresses = new HashSet<ServerAddress>();
         this.waitingForTIDs = new HashSet<Integer>();
@@ -144,27 +151,41 @@ public class CMHProcessor implements Runnable {
     		HashMap<String, Object> args = msg.getArgs();
     		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
     		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
-    		System.out.println("CMH message sent from " + currentTransaction.getTID() + " to " + waitingFortid.getTID());
+    		//System.out.println("CMH message sent from " + currentTransaction.getTID() + " to " + waitingFortid.getTID());
+    		
+    		/*
+    		if(currentTransaction.getTID() == 1000 || currentTransaction.getTID() == 10){
+    			System.out.println("deadlock detected");
+    		}
+    		*/
     		//JSONRPC2Request resp = rpc.receive();
     	}
     }
     
-    /**
+    /**	
      * Sends a Chandy-Misra-Haas message along the path
      */
-    public void propagateMessage(int initiator, TransactionId currentTransaction, Set<TransactionId> waitingForTransactions){
+    public void propagateMessage(TransactionId initiatorTid, TransactionId currentTransaction, Set<TransactionId> waitingForTransactions){
     	if (waitingForTransactions != null) {
     		//rpc = new RPC(currentTransaction.getServerAddress());
+    		//System.out.println("wft has " + waitingForTransactions.size());
 	    	for (TransactionId waitingFortid: waitingForTransactions) {
-	    		CMHMessage msg = new CMHMessage(initiator, currentTransaction.getTID(), waitingFortid.getTID());
+	    		//System.out.println(waitingFortid.getTID());
+	    		//CMHMessage msg = new CMHMessage(initiator, currentTransaction.getTID(), waitingFortid.getTID());
+	    		CMHMessage msg = new CMHMessage(initiatorTid, currentTransaction, waitingFortid);
 	    		messagesToSend.add(msg);
 	    		HashMap<String, Object> args = msg.getArgs();
 	    		RPCRequest req = new RPCRequest("deadlock", waitingFortid.getServerAddress(), currentTransaction, args);
 	    		RPC.send(waitingFortid.getServerAddress(), "deadlock", "001", req.toJSONObject());
-	    		DeadlockTest.print("propagated new message: " + initiator + " " + currentTransaction.getTID() + " " + waitingFortid.getTID());
+	    		DeadlockTest.print("propagated new message: " + initiatorTid.getTID() + " " + currentTransaction.getTID() + " " + waitingFortid.getTID());
 	    		//JSONRPC2Request resp = rpc.receive();
 	    	}
     	}
+    }
+    
+    public TransactionId genTid(String prefix, HashMap<String, Object> args){
+    	ServerAddress sa = new ServerAddress(((Long)args.get(prefix+"ServerNum")).intValue(), (String)args.get(prefix+"ServerName"), ((Long)args.get(prefix+"ServerPort")).intValue());
+    	return new TransactionId(sa, ((Long)args.get(prefix)).intValue());
     }
     
     public void run(){

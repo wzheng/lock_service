@@ -19,6 +19,8 @@ public class Server implements Runnable  {
     // transactions
     private int numThreads;
     private HashMap<TransactionId, CommunicationQ> activeWorkers;
+    private HashMap<TransactionId, CommunicationQ> activeDeadlockWorkers;
+	private HashMap<TransactionId, CommunicationQ> activeWFGWorkers;
 
     // reconfiguration
     private boolean isConfiguring;
@@ -29,6 +31,7 @@ public class Server implements Runnable  {
     private RPC rpc;
     private CommunicationQ queue;
     private AFTable af;
+
 
     // static variables
     private static int MAX_THREADS = 2;
@@ -59,9 +62,11 @@ public class Server implements Runnable  {
         this.isMaster = isMaster;
 
 	this.activeWorkers = new HashMap<TransactionId, CommunicationQ>();
+	this.activeDeadlockWorkers = new HashMap<TransactionId, CommunicationQ>();
+	this.activeWFGWorkers = new HashMap<TransactionId, CommunicationQ>();
     }
 
-    /*
+    
     public HashSet<TransactionId> getGlobalWFG(TransactionId tid){
     	HashSet<TransactionId> g = new HashSet<TransactionId>();
     	for (ServerAddress s : serverList.values()){
@@ -69,7 +74,12 @@ public class Server implements Runnable  {
     		RPCRequest sendReq = new RPCRequest("get-wfg", address, tid, args);
     		synchronized(this){
     			RPC.send(s, "get-wfg", "001", args);
-    			JSONRPC2Request x = JSONRPC2Request.parse((String)queue.get());
+    			JSONRPC2Request x = null;
+				try {
+					x = JSONRPC2Request.parse((String)queue.get());
+				} catch (JSONRPC2ParseException e) {
+					e.printStackTrace();
+				}
     			HashMap<String, Object> rep = (HashMap<String, Object>) x.getNamedParams();
     			HashSet<TransactionId> tmp = (HashSet<TransactionId>) rep.get("wfg");
     			for (TransactionId tmpTid : tmp){
@@ -79,7 +89,7 @@ public class Server implements Runnable  {
     	}
     	return g;
     }
-    */
+    
     public HashMap<Integer, ServerAddress> getAllServers() {
 	return this.serverList;
     }
@@ -163,6 +173,8 @@ public class Server implements Runnable  {
 
     public synchronized void threadDone(TransactionId tid) {
 	this.activeWorkers.remove(tid);
+	this.activeDeadlockWorkers.remove(tid);
+	this.activeWFGWorkers.remove(tid);
     }
 
     // check for incoming requests, spawn new worker threads as necessary
@@ -198,20 +210,47 @@ public class Server implements Runnable  {
 		} else {
 		    CommunicationQ q = new CommunicationQ();
 		    this.activeWorkers.put(rpcReq.tid, q);
-		    (new Thread(new Worker(this, q))).start();
+		    Worker w = new Worker(this, q);
+		    (new Thread(w)).start();
+		    
+		    CommunicationQ q2 = new CommunicationQ();
+		    this.activeDeadlockWorkers.put(rpcReq.tid, q2);
+		    DeadlockWorker dw = new DeadlockWorker(this, q2, w);
+		    (new Thread(dw)).start();
+		    
+		    CommunicationQ q3 = new CommunicationQ();
+		    this.activeWFGWorkers.put(rpcReq.tid, q3);
+		    WFGWorker wf = new WFGWorker(this, q3);
+		    (new Thread(wf)).start();
+		    w.setWFGWorker(wf);
 		    
 		    //System.out.println("Started new worker");
-		    q.put(rpcReq);
+			if (rpcReq.method.equals("deadlock")){
+				q2.put(rpcReq);
+			}
+			else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
+				q3.put(rpcReq);
+			}
+			else if (q != null) {
+			    q.put(rpcReq);
+			}
 		}
 		
-            } else if(method.equals("get-wfg")){
-            	
             } else {
             	//System.out.println("Putting req " + method + " in queue " + rpcReq);
 		CommunicationQ q = this.activeWorkers.get(rpcReq.tid);
-		if (q != null) {
+		CommunicationQ q2 = this.activeDeadlockWorkers.get(rpcReq.tid);
+		CommunicationQ q3 = this.activeWFGWorkers.get(rpcReq.tid);
+		if (rpcReq.method.equals("deadlock") && q2 != null){
+			q2.put(rpcReq);
+		}
+		else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
+			q3.put(rpcReq);
+		}
+		else if (q != null) {
 		    q.put(rpcReq);
 		}
+
             }
         }
     }

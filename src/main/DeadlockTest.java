@@ -8,7 +8,7 @@ import com.thetransactioncompany.jsonrpc2.*;
 
 public class DeadlockTest {
 	
-	public static boolean verbose = true;
+	public static boolean verbose = false;
 	
 	public static void print(String s){
 		if (verbose)
@@ -151,8 +151,11 @@ JSONRPC2Request resp = rpc.receive();
 		}
 
 		HashMap<String, HashMap<String, String> > read_map = DeadlockTest.commit(contact, address, tid, rpc);
-		HashMap<String, String> read = read_map.get("table");
-		if (read != null) {
+		HashMap<String, String> read  = null;
+		if (read_map != null){
+		    read = read_map.get("table");
+		}
+		if (read_map != null && read != null) {
 		    Iterator iter = committedWrites.entrySet().iterator();
 		    while (iter.hasNext()) {
 			Map.Entry entry = (Map.Entry) iter.next();
