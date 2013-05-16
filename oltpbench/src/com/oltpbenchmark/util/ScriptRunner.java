@@ -102,7 +102,7 @@ public class ScriptRunner {
 			boolean originalAutoCommit = connection.getAutoCommit();
 			try {
 				if (originalAutoCommit != this.autoCommit) {
-					connection.setAutoCommit(this.autoCommit);
+				    connection.setAutoCommit(this.autoCommit);
 				}
 				runScript(connection, reader);
 			} finally {
@@ -165,16 +165,16 @@ public class ScriptRunner {
 					boolean hasResults = false;
 					final String sql = command.toString().trim();
 					if (stopOnError) {
-						// hasResults = statement.execute(sql);
-						hasResults = conn.executeQuery(sql);
+					    // hasResults = statement.execute(sql);
+					    hasResults = conn.executeQuery(null, null);
 					} else {
-						try {
-							statement.execute(sql);
-							conn.executeQuery(sql);
-						} catch (SQLException e) {
-							printlnError("Error executing: " + sql);
-							printlnError(e);
-						}
+					    try {
+						statement.execute(sql);
+						conn.executeQuery(null, null);
+					    } catch (SQLException e) {
+						printlnError("Error executing: " + sql);
+						printlnError(e);
+					    }
 					}
 
 					if (autoCommit && !conn.getAutoCommit()) {

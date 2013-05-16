@@ -2,9 +2,9 @@
 <parameters>
 	
     <!-- Connection details -->
-    <dbtype>mysql</dbtype>
+    <dbtype>custom</dbtype>
     <driver>com.mysql.jdbc.Driver</driver>
-    <DBUrl>jdbc:mysql://localhost:3306/tpcc</DBUrl>
+    <DBUrl>localhost:4444</DBUrl>
     <username>root</username>
     <password></password>
     <isolation>TRANSACTION_SERIALIZABLE</isolation>
@@ -17,8 +17,8 @@
     <works>
         <work>
           <time>60</time>
-          <rate>10000</rate>
-          <weights>45,43,4,4,4</weights>
+          <rate>100</rate>
+          <weights>100</weights>
         </work>
 	</works>
 	
@@ -27,7 +27,7 @@
     	<transactiontype>
     		<name>NewOrder</name>
     	</transactiontype>
-    	<transactiontype>
+<!--    	<transactiontype>
     		<name>Payment</name>
     	</transactiontype>
     	<transactiontype>
@@ -38,6 +38,6 @@
     	</transactiontype>
     	<transactiontype>
     		<name>StockLevel</name>
-    	</transactiontype>
-   	</transactiontypes>	
+    	</transactiontype> -->
+   	</transactiontypes>
 </parameters>

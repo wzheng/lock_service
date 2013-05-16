@@ -91,10 +91,11 @@ public abstract class BenchmarkModule {
 
     public BenchmarkModule(String benchmarkName, WorkloadConfiguration workConf, boolean withCatalog) {
         assert (workConf != null) : "The WorkloadConfiguration instance is null.";
-
+	
         this.benchmarkName = benchmarkName;
         this.workConf = workConf;
-        this.catalog = (withCatalog ? new Catalog(this) : null);
+        //this.catalog = (withCatalog ? new Catalog(this) : null);
+	this.catalog = null;
         File xmlFile = this.getSQLDialect();
         this.dialects = new StatementDialects(this.workConf.getDBType(), xmlFile);
     }
@@ -109,17 +110,18 @@ public abstract class BenchmarkModule {
      * @throws SQLException
      */
     protected final DBConnect makeConnection() throws SQLException {
-    //protected final Connection makeConnection() throws SQLException {
+	//protected final Connection makeConnection() throws SQLException {
         //Connection conn = DriverManager.getConnection(workConf.getDBConnection(),
         //                                               workConf.getDBUsername(),
         //                                               workConf.getDBPassword());
         //Catalog.setSeparator(conn);
-        //this.last_connection = conn;
         //return (conn);
-		String[] result = workConf.getDBConnection().split(":");
-		DBConnect conn = new DBConnect(result[0], Integer.parseInt(result[1]));
-		this.last_connection = conn;
-		return (conn);
+        //this.last_connection = new DBConnect("hello", 8002);
+	String[] result = workConf.getDBConnection().split(":");
+	DBConnect conn = new DBConnect(result[0], Integer.parseInt(result[1]));
+	System.out.println("result[0] is " + result[0]);
+	this.last_connection = conn;
+	return (conn);
     }
     
     /**
@@ -228,7 +230,7 @@ public abstract class BenchmarkModule {
     public final void createDatabase() {
         try {
             //Connection conn = this.makeConnection();
-        	DBConnect conn = this.makeConnection();
+	    DBConnect conn = this.makeConnection();
             this.createDatabase(this.workConf.getDBType(), conn);
             conn.close();
         } catch (SQLException ex) {
@@ -296,7 +298,7 @@ public abstract class BenchmarkModule {
             if (loader != null) {
                 //conn.setAutoCommit(false);
                 loader.load();
-                conn.commit();
+                //conn.commit();
                 
                 if (loader.getTableCounts().isEmpty() == false) {
                     LOG.info("Table Counts:\n" + loader.getTableCounts());

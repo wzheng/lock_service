@@ -253,7 +253,8 @@ public class PartitionTest {
 	// PartitionTest.commit(sa3, client, 3, rpc);
 
 	PartitionTest t = new PartitionTest();
-
+	System.out.println("Starting test");
+	
 	ArrayList<String> keySet1 = new ArrayList<String>();
 	keySet1.add("1");
 	keySet1.add("5");

@@ -77,7 +77,7 @@ public class Worker implements Runnable {
     	HashMap<String, Object> args = (HashMap<String, Object>) rpcReq.args;
     	TransactionContext txnContext = new TransactionContext(rpcReq.tid, (HashMap<String, Object>) rpcReq.args);
     	//String key = (String) args.get("write-lock");
-    	System.out.println("called getSingleLock via RPC");
+    	//System.out.println("called getSingleLock via RPC");
     	String key = (String) txnContext.write_set.keySet().toArray()[0];
     	lockOneFromWriteSet(key, rpcReq.tid, txnContext);
     }
@@ -296,6 +296,7 @@ public class Worker implements Runnable {
 				if (System.currentTimeMillis() - start > 300){
 					break;
 				}
+
 				System.out.println("not locking " + key+table + " for tid " + tid.getTID());
 				//wfgWorker.getGlobalWFG(tid);
 				if (server.getWFG(tid) != null){
@@ -348,6 +349,7 @@ public class Worker implements Runnable {
 	        //}
 	        	
 		    System.out.println("lockW " + key + table + " by TID " + tid.getTID());
+
 		    HashSet<String> set = writeLocked.get(table);
 		    if (set == null) {
 			set = new HashSet<String>();
@@ -836,13 +838,13 @@ public class Worker implements Runnable {
     	}
     	wfgCounter++;
     	if (wfgCounter == server.getAllServers().size()){
-        DeadlockTest.print("WHOLEWFG for TID " + rpcReq.tid.getTID());
-        String s = "";
-        for (TransactionId x : wfg){
+	    //DeadlockTest.print("WHOLEWFG for TID " + rpcReq.tid.getTID());
+	    String s = "";
+	    for (TransactionId x : wfg){
         	s += x.getTID() + ", ";
-        }
-        DeadlockTest.print(s);
-		cmhProcessor.generateMessage(rpcReq.tid, wfg);
+	    }
+	    //DeadlockTest.print(s);
+	    cmhProcessor.generateMessage(rpcReq.tid, wfg);
     	}
 
     }
@@ -865,7 +867,8 @@ public class Worker implements Runnable {
      * @param req
      */
     public void cmhDeadlockReceiveMessage(RPCRequest req){
-    	//CMHProcessor cmhProcessor = new CMHProcessor(server);
+    	CMHProcessor cmhProcessor = new CMHProcessor();
+    	//System.out.println(req.args);
     	HashMap<String, Object> args = (HashMap<String, Object>) req.args;
     	TransactionId initiatorTid = (TransactionId) args.get("initiatorTid");
     	int initiator = ((Long) args.get("initiator")).intValue();

@@ -68,6 +68,7 @@ import com.oltpbenchmark.util.SQLUtil;
 
 import com.oltpbenchmark.DBConnect;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class TPCCLoader extends Loader{
     private static final Logger LOG = Logger.getLogger(TPCCLoader.class);
@@ -121,7 +122,7 @@ public class TPCCLoader extends Loader{
     protected void transCommit() {
 	if (outputFiles == false) {
 	    try {
-	    conn.commit();
+		conn.commit();
 	    } catch (SQLException se) {
 	     	LOG.debug(se.getMessage());
 	     	transRollback();
@@ -136,8 +137,8 @@ public class TPCCLoader extends Loader{
 	LOG.debug("Truncating '" + strTable + "' ...");
 	//try {
 	//this.conn.createStatement().execute("TRUNCATE TABLE " + strTable);
-	this.conn.executeQuery("TRUNCATE TABLE " + strTable);
-	transCommit();
+	//this.conn.executeQuery("TRUNCATE TABLE " + strTable);
+	//transCommit();
 	// } catch (SQLException se) {
 	//     LOG.debug(se.getMessage());
 	//     transRollback();
@@ -155,9 +156,18 @@ public class TPCCLoader extends Loader{
 
 	ArrayList<String> statements = new ArrayList<String>();
 
+	HashMap<String, HashMap<String, String> > writes = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> inserts = new HashMap<String, String>();
+	writes.put(TPCCConstants.TABLENAME_ITEM, inserts);
+
+	HashMap<String, HashMap<String, String> > reads = new HashMap<String, HashMap<String, String> >();
+	reads.put(TPCCConstants.TABLENAME_ITEM, new HashMap<String, String>());
+
+
 	try {
-	    String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_ITEM);
-	    String itemPrepStmt = baseStmt;
+	    //String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_ITEM);
+	    //String itemPrepStmt = baseStmt;
+
 
 	    now = new java.util.Date();
 	    t = itemKount;
@@ -200,25 +210,27 @@ public class TPCCLoader extends Loader{
 		k++;
 
 		if (outputFiles == false) {
-		    itemPrepStmt = itemPrepStmt.replaceFirst("\\?", Integer.toString(item.i_id));
-		    itemPrepStmt = itemPrepStmt.replaceFirst("\\?", item.i_name);
-		    itemPrepStmt = itemPrepStmt.replaceFirst("\\?", Float.toString(item.i_price));
-		    itemPrepStmt = itemPrepStmt.replaceFirst("\\?",  item.i_data);
-		    itemPrepStmt = itemPrepStmt.replaceFirst("\\?",  Integer.toString(item.i_im_id));
-		    statements.add(itemPrepStmt);
+		    // Primary key: i_id
+		    String key = Integer.toString(item.i_id);
+		    String value = new String();
+		    value += item.i_name + Float.toString(item.i_price) + item.i_data + Integer.toString(item.i_im_id);
+		    // itemPrepStmt = itemPrepStmt.replaceFirst("\\?", Integer.toString(item.i_id));
+		    // itemPrepStmt = itemPrepStmt.replaceFirst("\\?", item.i_name);
+		    // itemPrepStmt = itemPrepStmt.replaceFirst("\\?", Float.toString(item.i_price));
+		    // itemPrepStmt = itemPrepStmt.replaceFirst("\\?",  item.i_data);
+		    // itemPrepStmt = itemPrepStmt.replaceFirst("\\?",  Integer.toString(item.i_im_id));
+		    inserts.put(key, value);
 
 		    if ((k % configCommitCount) == 0) {
 			long tmpTime = new java.util.Date().getTime();
 			String etStr = "  Elasped Time(ms): "
 			    + ((tmpTime - lastTimeMS) / 1000.000)
 			    + "                    ";
-			LOG.debug(etStr.substring(0, 30)
-				  + "  Writing record " + k + " of " + t);
+			LOG.debug(etStr.substring(0, 30) + "  Writing record " + k + " of " + t);
 			lastTimeMS = tmpTime;
-			this.conn.executeBatch(statements);
-			statements.clear();
-			itemPrepStmt = baseStmt;
-			transCommit();
+			this.conn.executeBatch(writes, reads);
+			this.conn.commit();
+			inserts.clear();
 		    }
 		} else {
 		    String str = "";
@@ -251,10 +263,10 @@ public class TPCCLoader extends Loader{
 	    lastTimeMS = tmpTime;
 
 	    if (outputFiles == false) {
-		this.conn.executeBatch(statements);
+		this.conn.executeBatch(writes, reads);
+		this.conn.commit();
 	    }
 
-	    transCommit();
 	    now = new java.util.Date();
 	    LOG.debug("End Item Load @  " + now);
 
@@ -272,9 +284,17 @@ public class TPCCLoader extends Loader{
 
     protected int loadWhse(int whseKount) {
 
+	HashMap<String, HashMap<String, String> > writes = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> inserts = new HashMap<String, String>();
+	writes.put(TPCCConstants.TABLENAME_WAREHOUSE, inserts);
+	
+	HashMap<String, HashMap<String, String> > reads = new HashMap<String, HashMap<String, String> >();
+	reads.put(TPCCConstants.TABLENAME_WAREHOUSE, new HashMap<String, String>());
+
 	try {
 		    
-	    String whsePrepStmt = getInsertStatement(TPCCConstants.TABLENAME_WAREHOUSE);
+	    //String whsePrepStmt = getInsertStatement(TPCCConstants.TABLENAME_WAREHOUSE);
+	    
 
 	    now = new java.util.Date();
 	    LOG.debug("\nStart Whse Load for " + whseKount
@@ -308,16 +328,23 @@ public class TPCCLoader extends Loader{
 		warehouse.w_zip = "123456789";
 
 		if (outputFiles == false) {
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", Integer.toString(warehouse.w_id));
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", Float.toString(warehouse.w_ytd));
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", Float.toString(warehouse.w_tax));
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?",  warehouse.w_name);
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_street_1);
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_street_2);
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_city);
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_state);
-		    whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_zip);
-		    this.conn.executeQuery(whsePrepStmt);
+		    // Primary key: w_id
+		    String key = Integer.toString(warehouse.w_id);
+		    String value = Float.toString(warehouse.w_ytd) + Float.toString(warehouse.w_tax);
+		    value += warehouse.w_name + warehouse.w_street_1 + warehouse.w_street_2 + warehouse.w_city;
+		    value += warehouse.w_state + warehouse.w_zip;
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", Integer.toString(warehouse.w_id));
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", Float.toString(warehouse.w_ytd));
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", Float.toString(warehouse.w_tax));
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?",  warehouse.w_name);
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_street_1);
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_street_2);
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_city);
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_state);
+		    // whsePrepStmt = whsePrepStmt.replaceFirst("\\?", warehouse.w_zip);
+		    inserts.put(key, value);
+		    this.conn.executeQuery(writes, reads);
+		    inserts.clear();
 		} else {
 		    String str = "";
 		    str = str + warehouse.w_id + ",";
@@ -333,8 +360,8 @@ public class TPCCLoader extends Loader{
 		}
 
 	    } // end for
-
-	    transCommit();
+	    
+	    this.conn.commit();
 	    now = new java.util.Date();
 
 	    long tmpTime = new java.util.Date().getTime();
@@ -365,10 +392,18 @@ public class TPCCLoader extends Loader{
 
 	ArrayList<String> statements = new ArrayList<String>();
 
+	HashMap<String, HashMap<String, String> > writes = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> inserts = new HashMap<String, String>();
+	writes.put(TPCCConstants.TABLENAME_STOCK, inserts);
+
+	HashMap<String, HashMap<String, String> > reads = new HashMap<String, HashMap<String, String> >();
+	reads.put(TPCCConstants.TABLENAME_STOCK, new HashMap<String, String>());
+
+
 	try {
 		    
-	    String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_STOCK);
-	    String stckPrepStmt = baseStmt;
+	    //String baseStmt = getInsertStatement(TPCCConstants.TABLENAME_STOCK);
+	    //String stckPrepStmt = baseStmt;
 
 	    now = new java.util.Date();
 	    t = (whseKount * itemKount);
@@ -423,27 +458,56 @@ public class TPCCLoader extends Loader{
 		    stock.s_dist_09 = TPCCUtil.randomStr(24);
 		    stock.s_dist_10 = TPCCUtil.randomStr(24);
 
+		    // stock.s_dist_01 = "";
+		    // stock.s_dist_02 = "";
+		    // stock.s_dist_03 = "";
+		    // stock.s_dist_04 = "";
+		    // stock.s_dist_05 = "";
+		    // stock.s_dist_06 = "";
+		    // stock.s_dist_07 = "";
+		    // stock.s_dist_08 = "";
+		    // stock.s_dist_09 = "";
+		    // stock.s_dist_10 = "";
+
 		    k++;
+
 		    if (outputFiles == false) {
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_w_id));
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_i_id));
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_quantity));
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Float.toString(stock.s_ytd));
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_order_cnt));
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_remote_cnt));
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_data);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_01);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_02);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_03);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_04);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_05);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_06);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_07);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_08);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_09);
-			stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_10);
-			statements.add(stckPrepStmt);
-			stckPrepStmt = baseStmt;
+			//Primary key: s_w_id + s_i_id
+			String key = Integer.toString(stock.s_w_id) + Integer.toString(stock.s_i_id);
+			String value = Integer.toString(stock.s_quantity);
+			value += Float.toString(stock.s_ytd) + Integer.toString(stock.s_order_cnt) + Integer.toString(stock.s_remote_cnt);
+			value = value + stock.s_dist_01;
+			value = value + stock.s_dist_02;
+			value = value + stock.s_dist_03;
+			value = value + stock.s_dist_04;
+			value = value + stock.s_dist_05;
+			value = value + stock.s_dist_06;
+			value = value + stock.s_dist_07;
+			value = value + stock.s_dist_08;
+			value = value + stock.s_dist_09;
+			value = value + stock.s_dist_10;
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_w_id));
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_i_id));
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_quantity));
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Float.toString(stock.s_ytd));
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_order_cnt));
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", Integer.toString(stock.s_remote_cnt));
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_data);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_01);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_02);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_03);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_04);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_05);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_06);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_07);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_08);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_09);
+			// stckPrepStmt = stckPrepStmt.replaceFirst("\\?", stock.s_dist_10);
+			//statements.add(stckPrepStmt);
+			//System.out.println("key, value " + key + ", " + value);
+			inserts.put(key, value);
+			System.out.println("k is " + k);
+			//stckPrepStmt = baseStmt;
 			if ((k % configCommitCount) == 0) {
 			    long tmpTime = new java.util.Date().getTime();
 			    String etStr = "  Elasped Time(ms): "
@@ -452,41 +516,40 @@ public class TPCCLoader extends Loader{
 			    LOG.debug(etStr.substring(0, 30)
 				      + "  Writing record " + k + " of " + t);
 			    lastTimeMS = tmpTime;
-			    this.conn.executeBatch(statements);
-			    statements.clear();
-			    stckPrepStmt = baseStmt;
-			    transCommit();
+			    this.conn.executeBatch(writes, reads);
+			    this.conn.commit();
+			    inserts.clear();
 			}
 		    } else {
-			String str = "";
-			str = str + stock.s_i_id + ",";
-			str = str + stock.s_w_id + ",";
-			str = str + stock.s_quantity + ",";
-			str = str + stock.s_ytd + ",";
-			str = str + stock.s_order_cnt + ",";
-			str = str + stock.s_remote_cnt + ",";
-			str = str + stock.s_data + ",";
-			str = str + stock.s_dist_01 + ",";
-			str = str + stock.s_dist_02 + ",";
-			str = str + stock.s_dist_03 + ",";
-			str = str + stock.s_dist_04 + ",";
-			str = str + stock.s_dist_05 + ",";
-			str = str + stock.s_dist_06 + ",";
-			str = str + stock.s_dist_07 + ",";
-			str = str + stock.s_dist_08 + ",";
-			str = str + stock.s_dist_09 + ",";
-			str = str + stock.s_dist_10;
-			out.println(str);
+			// String str = "";
+			// str = str + stock.s_i_id + ",";
+			// str = str + stock.s_w_id + ",";
+			// str = str + stock.s_quantity + ",";
+			// str = str + stock.s_ytd + ",";
+			// str = str + stock.s_order_cnt + ",";
+			// str = str + stock.s_remote_cnt + ",";
+			// str = str + stock.s_data + ",";
+			// str = str + stock.s_dist_01 + ",";
+			// str = str + stock.s_dist_02 + ",";
+			// str = str + stock.s_dist_03 + ",";
+			// str = str + stock.s_dist_04 + ",";
+			// str = str + stock.s_dist_05 + ",";
+			// str = str + stock.s_dist_06 + ",";
+			// str = str + stock.s_dist_07 + ",";
+			// str = str + stock.s_dist_08 + ",";
+			// str = str + stock.s_dist_09 + ",";
+			// str = str + stock.s_dist_10;
+			// out.println(str);
 
-			if ((k % configCommitCount) == 0) {
-			    long tmpTime = new java.util.Date().getTime();
-			    String etStr = "  Elasped Time(ms): "
-				+ ((tmpTime - lastTimeMS) / 1000.000)
-				+ "                    ";
-			    LOG.debug(etStr.substring(0, 30)
-				      + "  Writing record " + k + " of " + t);
-			    lastTimeMS = tmpTime;
-			}
+			// if ((k % configCommitCount) == 0) {
+			//     long tmpTime = new java.util.Date().getTime();
+			//     String etStr = "  Elasped Time(ms): "
+			// 	+ ((tmpTime - lastTimeMS) / 1000.000)
+			// 	+ "                    ";
+			//     LOG.debug(etStr.substring(0, 30)
+			// 	      + "  Writing record " + k + " of " + t);
+			//     lastTimeMS = tmpTime;
+			// }
 		    }
 
 		} // end for [w]
@@ -501,9 +564,10 @@ public class TPCCLoader extends Loader{
 		      + "  Writing final records " + k + " of " + t);
 	    lastTimeMS = tmpTime;
 	    if (outputFiles == false) {
-		this.conn.executeBatch(statements);
+		this.conn.executeBatch(writes, reads);
+		this.conn.commit();
 	    }
-	    transCommit();
+	    //transCommit();
 
 	    now = new java.util.Date();
 	    LOG.debug("End Stock Load @  " + now);
@@ -525,6 +589,10 @@ public class TPCCLoader extends Loader{
 
 	int k = 0;
 	int t = 0;
+
+	HashMap<String, HashMap<String, String> > writes = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> inserts = new HashMap<String, String>();
+	writes.put(TPCCConstants.TABLENAME_DISTRICT, inserts);
 
 	try {
 
@@ -574,18 +642,26 @@ public class TPCCLoader extends Loader{
 		    k++;
 
 		    if (outputFiles == false) {
-			sql = sql.replaceFirst("\\?", Integer.toString(district.d_w_id));
-		    	sql = sql.replaceFirst("\\?", Integer.toString(district.d_id));
-		    	sql = sql.replaceFirst("\\?", Float.toString(district.d_ytd));
-		    	sql = sql.replaceFirst("\\?", Float.toString(district.d_tax));
-		    	sql = sql.replaceFirst("\\?", Integer.toString(district.d_next_o_id));
-		    	sql = sql.replaceFirst("\\?", district.d_name);
-		    	sql = sql.replaceFirst("\\?", district.d_street_1);
-		    	sql = sql.replaceFirst("\\?", district.d_street_2);
-		    	sql = sql.replaceFirst("\\?", district.d_city);
-		    	sql = sql.replaceFirst("\\?", district.d_state);
-		    	sql = sql.replaceFirst("\\?", district.d_zip);
-			this.conn.executeQuery(sql);
+			// Primary key: d_w_id + d_id
+			String key = Integer.toString(district.d_w_id) + Integer.toString(district.d_id);
+			String value = Float.toString(district.d_ytd) + Float.toString(district.d_tax);
+			value += Integer.toString(district.d_next_o_id);
+			value += district.d_name + district.d_street_1 + district.d_street_2;
+			value += district.d_city + district.d_state + district.d_zip;
+			// sql = sql.replaceFirst("\\?", Integer.toString(district.d_w_id));
+		    	// sql = sql.replaceFirst("\\?", Integer.toString(district.d_id));
+		    	// sql = sql.replaceFirst("\\?", Float.toString(district.d_ytd));
+		    	// sql = sql.replaceFirst("\\?", Float.toString(district.d_tax));
+		    	// sql = sql.replaceFirst("\\?", Integer.toString(district.d_next_o_id));
+		    	// sql = sql.replaceFirst("\\?", district.d_name);
+		    	// sql = sql.replaceFirst("\\?", district.d_street_1);
+		    	// sql = sql.replaceFirst("\\?", district.d_street_2);
+		    	// sql = sql.replaceFirst("\\?", district.d_city);
+		    	// sql = sql.replaceFirst("\\?", district.d_state);
+		    	// sql = sql.replaceFirst("\\?", district.d_zip);
+			inserts.put(key, value);
+			this.conn.executeQuery(writes, null);
+			inserts.clear();
 		    } else {
 		    	String str = "";
 		    	str = str + district.d_id + ",";
@@ -613,7 +689,8 @@ public class TPCCLoader extends Loader{
 	    LOG.debug(etStr.substring(0, 30) + "  Writing record " + k
 		      + " of " + t);
 	    lastTimeMS = tmpTime;
-	    transCommit();
+	    this.conn.commit();
+	    //transCommit();
 	    now = new java.util.Date();
 	    LOG.debug("End District Load @  " + now);
 
@@ -641,11 +718,22 @@ public class TPCCLoader extends Loader{
 	ArrayList<String> customerStatements = new ArrayList<String>();
 	ArrayList<String> historyStatements = new ArrayList<String>();	
 
+	HashMap<String, HashMap<String, String> > customerWrites = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> customerInserts = new HashMap<String, String>();
+	customerWrites.put(TPCCConstants.TABLENAME_CUSTOMER, customerInserts);
+
+	HashMap<String, HashMap<String, String> > historyWrites = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> historyInserts = new HashMap<String, String>();
+	historyWrites.put(TPCCConstants.TABLENAME_HISTORY, historyInserts);
+
+	int historyNum = 0;
+
+
 	try {
-	    String custBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_CUSTOMER);
-	    String histBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_HISTORY);
-	    String custPrepStmt = custBaseStmt;
-	    String histPrepStmt = histBaseStmt;
+	    // String custBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_CUSTOMER);
+	    // String histBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_HISTORY);
+	    // String custPrepStmt = custBaseStmt;
+	    // String histPrepStmt = histBaseStmt;
 
 	    now = new java.util.Date();
 
@@ -670,16 +758,14 @@ public class TPCCLoader extends Loader{
 
 		    for (int c = 1; c <= custDistKount; c++) {
 
-			Timestamp sysdate = new java.sql.Timestamp(
-								   System.currentTimeMillis());
+			Timestamp sysdate = new java.sql.Timestamp(System.currentTimeMillis());
 
 			customer.c_id = c;
 			customer.c_d_id = d;
 			customer.c_w_id = w;
 
 			// discount is random between [0.0000 ... 0.5000]
-			customer.c_discount = (float) (TPCCUtil.randomNumber(1,
-									     5000, gen) / 10000.0);
+			customer.c_discount = (float) (TPCCUtil.randomNumber(1, 5000, gen) / 10000.0);
 
 			if (TPCCUtil.randomNumber(1, 100, gen) <= 10) {
 			    customer.c_credit = "BC"; // 10% Bad Credit
@@ -730,43 +816,62 @@ public class TPCCLoader extends Loader{
 
 			k = k + 2;
 			if (outputFiles == false) {
-			    custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_w_id));
-			    custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_d_id));
-			    custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_id));
-			    custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_discount));
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_credit);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_last);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_first);
-			    custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_credit_lim));
-			    custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_balance));
-			    custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_ytd_payment));
-			    custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_payment_cnt));
-			    custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_delivery_cnt));
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_street_1);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_street_2);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_city);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_state);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_zip);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_phone);
+			    // Customer table - Primary key: c_w_id + c_d_id + c_id
+			    String key =  Integer.toString(customer.c_w_id) +  Integer.toString(customer.c_d_id) + Integer.toString(customer.c_id);
+			    String value = Float.toString(customer.c_discount) + customer.c_credit;
+			    value += customer.c_last +  customer.c_first + Float.toString(customer.c_credit_lim);
+			    value += Float.toString(customer.c_balance) + Float.toString(customer.c_ytd_payment);
+			    value += Integer.toString(customer.c_payment_cnt) + Integer.toString(customer.c_delivery_cnt);
+			    value += customer.c_street_1 + customer.c_street_2;
+			    value += customer.c_city + customer.c_state + customer.c_zip;
+			    value += customer.c_phone + customer.c_since.toString();
+			    value += customer.c_middle + customer.c_data;
 
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_since.toString());
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_middle);
-			    custPrepStmt = custPrepStmt.replace("\\?", customer.c_data);
+			    // custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_w_id));
+			    // custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_d_id));
+			    // custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_id));
+			    // custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_discount));
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_credit);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_last);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_first);
+			    // custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_credit_lim));
+			    // custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_balance));
+			    // custPrepStmt = custPrepStmt.replace("\\?", Float.toString(customer.c_ytd_payment));
+			    // custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_payment_cnt));
+			    // custPrepStmt = custPrepStmt.replace("\\?", Integer.toString(customer.c_delivery_cnt));
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_street_1);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_street_2);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_city);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_state);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_zip);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_phone);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_since.toString());
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_middle);
+			    // custPrepStmt = custPrepStmt.replace("\\?", customer.c_data);
 
-			    customerStatements.add(custPrepStmt);
-			    custPrepStmt = custBaseStmt;
+			    // customerStatements.add(custPrepStmt);
+			    // custPrepStmt = custBaseStmt;
+			    customerInserts.put(key, value);
+			    
+			    String histKey = Integer.toString(historyNum);
+			    String histValue = Integer.toString(history.h_c_id) + Integer.toString(history.h_c_d_id);
+			    histValue += Integer.toString(history.h_c_w_id) + Integer.toString(history.h_d_id);
+			    histValue += Integer.toString(history.h_w_id) + history.h_date.toString();
+			    histValue += Float.toString(history.h_amount) + history.h_data;
 
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_c_id));
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_c_d_id));
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_c_w_id));
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_c_id));
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_c_d_id));
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_c_w_id));
 
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_d_id));
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_w_id));
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", history.h_date.toString());
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", Float.toString(history.h_amount));
-			    histPrepStmt = histPrepStmt.replaceFirst("\\?", history.h_data);
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_d_id));
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", Integer.toString(history.h_w_id));
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", history.h_date.toString());
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", Float.toString(history.h_amount));
+			    // histPrepStmt = histPrepStmt.replaceFirst("\\?", history.h_data);
 
-			    historyStatements.add(histPrepStmt);
+			    historyInserts.put(histKey, histValue);
+			    customerInserts.put(key, value);
+			    historyNum++;
 
 			    if ((k % configCommitCount) == 0) {
 				long tmpTime = new java.util.Date().getTime();
@@ -778,14 +883,11 @@ public class TPCCLoader extends Loader{
 				lastTimeMS = tmpTime;
 
 
-				this.conn.executeBatch(customerStatements);
-				this.conn.executeBatch(historyStatements);
-				customerStatements.clear();
-				historyStatements.clear();
-				custPrepStmt = custBaseStmt;
-				histPrepStmt = histBaseStmt;
-				
-				transCommit();
+				this.conn.executeBatch(customerWrites, null);
+				this.conn.executeBatch(historyWrites, null);
+				this.conn.commit();
+				customerInserts.clear();
+				historyInserts.clear();
 			    }
 			} else {
 			    String str = "";
@@ -845,14 +947,12 @@ public class TPCCLoader extends Loader{
 	    LOG.debug(etStr.substring(0, 30) + "  Writing record " + k
 		      + " of " + t);
 	    lastTimeMS = tmpTime;
-	    this.conn.executeBatch(customerStatements);
-	    this.conn.executeBatch(historyStatements);
-	    customerStatements.clear();
-	    historyStatements.clear();
-	    custPrepStmt = custBaseStmt;
-	    histPrepStmt = histBaseStmt;
-	    
-	    transCommit();
+	    this.conn.executeBatch(customerWrites, null);
+	    this.conn.executeBatch(historyWrites, null);
+	    this.conn.commit();
+	    customerInserts.clear();
+	    historyInserts.clear();
+
 	    now = new java.util.Date();
 	    if (outputFiles == true) {
 		outHist.close();
@@ -887,15 +987,27 @@ public class TPCCLoader extends Loader{
 	ArrayList<String> nworStatements = new ArrayList<String>();
 	ArrayList<String> orlnStatements = new ArrayList<String>();
 
+	HashMap<String, HashMap<String, String> > ooWrites = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> ooInserts = new HashMap<String, String>();
+	ooWrites.put(TPCCConstants.TABLENAME_OPENORDER, ooInserts);
+
+	HashMap<String, HashMap<String, String> > noWrites = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> noInserts = new HashMap<String, String>();
+	noWrites.put(TPCCConstants.TABLENAME_NEWORDER, noInserts);
+
+	HashMap<String, HashMap<String, String> > olWrites = new HashMap<String, HashMap<String, String> >();
+	HashMap<String, String> olInserts = new HashMap<String, String>();
+	olWrites.put(TPCCConstants.TABLENAME_ORDERLINE, olInserts);
+
 	try {
 	    
-	    String ordrBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_OPENORDER);
-	    String nworBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_NEWORDER);
-	    String orlnBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_ORDERLINE);
+	    // String ordrBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_OPENORDER);
+	    // String nworBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_NEWORDER);
+	    // String orlnBaseStmt = getInsertStatement(TPCCConstants.TABLENAME_ORDERLINE);
 
-	    String ordrPrepStmt = ordrBaseStmt;
-	    String nworPrepStmt = nworBaseStmt;
-	    String orlnPrepStmt = orlnBaseStmt;
+	    // String ordrPrepStmt = ordrBaseStmt;
+	    // String nworPrepStmt = nworBaseStmt;
+	    // String orlnPrepStmt = orlnBaseStmt;
 
 	    if (outputFiles == true) {
 		out = new PrintWriter(new FileOutputStream(fileLocation
@@ -964,7 +1076,13 @@ public class TPCCLoader extends Loader{
 
 			k++;
 			if (outputFiles == false) {
-			    myJdbcIO.insertOrder(ordrStatements, ordrPrepStmt, oorder);
+			    //myJdbcIO.insertOrder(ordrStatements, ordrPrepStmt, oorder);
+			    // Primary: o_w_id + o_d_id + o_id
+			    String key = "";
+			    key = key + oorder.o_w_id + oorder.o_d_id + oorder.o_id;
+			    String value = "";
+			    value = value + oorder.o_c_id + oorder.o_carrier_id + oorder.o_ol_cnt + oorder.o_all_local;
+			    ooInserts.put(key, value);
 			} else {
 			    String str = "";
 			    str = str + oorder.o_id + ",";
@@ -994,7 +1112,11 @@ public class TPCCLoader extends Loader{
 
 			    k++;
 			    if (outputFiles == false) {
-				myJdbcIO.insertNewOrder(nworStatements, nworPrepStmt, new_order);
+				//myJdbcIO.insertNewOrder(nworStatements, nworPrepStmt, new_order);
+				String key = "";
+				key = key + new_order.no_w_id + new_order.no_d_id + new_order.no_o_id;
+				String value = key;
+				noInserts.put(key, value);
 			    } else {
 				String str = "";
 				str = str + new_order.no_w_id + ",";
@@ -1028,8 +1150,19 @@ public class TPCCLoader extends Loader{
 
 			    k++;
 			    if (outputFiles == false) {
-
-				myJdbcIO.insertOrderLine(orlnStatements, orlnPrepStmt, order_line);
+				//myJdbcIO.insertOrderLine(orlnStatements, orlnPrepStmt, order_line);
+				// Primary key: ol_w_id + ol_d_id + ol_o_id + ol_number
+				String key = "";
+				key += order_line.ol_w_id + order_line.ol_d_id + order_line.ol_o_id + order_line.ol_number;
+				String value = "";
+				value += order_line.ol_i_id;
+				Timestamp delivery_d = new Timestamp(order_line.ol_delivery_d);
+				value += delivery_d;
+				value += order_line.ol_amount;
+				value += order_line.ol_supply_w_id;
+				value += order_line.ol_quantity;
+				value += order_line.ol_dist_info;
+				olInserts.put(key, value);
 			    } else {
 				String str = "";
 				str = str + order_line.ol_w_id + ",";
@@ -1037,8 +1170,7 @@ public class TPCCLoader extends Loader{
 				str = str + order_line.ol_o_id + ",";
 				str = str + order_line.ol_number + ",";
 				str = str + order_line.ol_i_id + ",";
-				Timestamp delivery_d = new Timestamp(
-								     order_line.ol_delivery_d);
+				Timestamp delivery_d = new Timestamp(order_line.ol_delivery_d);
 				str = str + delivery_d + ",";
 				str = str + order_line.ol_amount + ",";
 				str = str + order_line.ol_supply_w_id + ",";
@@ -1057,16 +1189,13 @@ public class TPCCLoader extends Loader{
 				lastTimeMS = tmpTime;
 				if (outputFiles == false) {
 
-				    this.conn.executeBatch(ordrStatements);
-				    this.conn.executeBatch(nworStatements);
-				    this.conn.executeBatch(orlnStatements);
-				    ordrStatements.clear();
-				    nworStatements.clear();
-				    orlnStatements.clear();
-				    ordrPrepStmt = ordrBaseStmt;
-				    nworPrepStmt = nworBaseStmt;
-				    orlnPrepStmt = orlnBaseStmt;				    
-				    transCommit();
+				    this.conn.executeBatch(ooWrites, null);
+				    this.conn.executeBatch(noWrites, null);
+				    this.conn.executeBatch(olWrites, null);
+				    ooInserts.clear();
+				    noInserts.clear();
+				    olInserts.clear();
+				    this.conn.commit();
 				}
 			    }
 
@@ -1080,14 +1209,18 @@ public class TPCCLoader extends Loader{
 
 	    LOG.debug("  Writing final records " + k + " of " + t);
 	    if (outputFiles == false) {
-		this.conn.executeBatch(ordrStatements);
-		this.conn.executeBatch(nworStatements);
-		this.conn.executeBatch(orlnStatements);
+		this.conn.executeBatch(ooWrites, null);
+		this.conn.executeBatch(noWrites, null);
+		this.conn.executeBatch(olWrites, null);
+		ooInserts.clear();
+		noInserts.clear();
+		olInserts.clear();
 	    } else {
 		outLine.close();
 		outNewOrder.close();
 	    }
-	    transCommit();
+	    //transCommit();
+	    this.conn.commit();
 	    now = new java.util.Date();
 	    LOG.debug("End Orders Load @  " + now);
 
@@ -1106,27 +1239,25 @@ public class TPCCLoader extends Loader{
 
     // This originally used org.apache.commons.lang.NotImplementedException
     // but I don't get why...
-    public static final class NotImplementedException extends
-							  UnsupportedOperationException {
-
+    public static final class NotImplementedException extends UnsupportedOperationException {
         private static final long serialVersionUID = 1958656852398867984L;
     }
 
     @Override
-	public void load() throws SQLException {
-
-	if (outputFiles == false) {
-	    // Clearout the tables
-	    truncateTable(TPCCConstants.TABLENAME_ITEM);
-	    truncateTable(TPCCConstants.TABLENAME_WAREHOUSE);
-	    truncateTable(TPCCConstants.TABLENAME_STOCK);
-	    truncateTable(TPCCConstants.TABLENAME_DISTRICT);
-	    truncateTable(TPCCConstants.TABLENAME_CUSTOMER);
-	    truncateTable(TPCCConstants.TABLENAME_HISTORY);
-	    truncateTable(TPCCConstants.TABLENAME_OPENORDER);
-	    truncateTable(TPCCConstants.TABLENAME_ORDERLINE);
-	    truncateTable(TPCCConstants.TABLENAME_NEWORDER);
-	}
+    public void load() throws SQLException {
+	
+	// if (outputFiles == false) {
+	//     // Clearout the tables
+	//     truncateTable(TPCCConstants.TABLENAME_ITEM);
+	//     truncateTable(TPCCConstants.TABLENAME_WAREHOUSE);
+	//     truncateTable(TPCCConstants.TABLENAME_STOCK);
+	//     truncateTable(TPCCConstants.TABLENAME_DISTRICT);
+	//     truncateTable(TPCCConstants.TABLENAME_CUSTOMER);
+	//     truncateTable(TPCCConstants.TABLENAME_HISTORY);
+	//     truncateTable(TPCCConstants.TABLENAME_OPENORDER);
+	//     truncateTable(TPCCConstants.TABLENAME_ORDERLINE);
+	//     truncateTable(TPCCConstants.TABLENAME_NEWORDER);
+	// }
 
 	// seed the random number generator
 	gen = new Random(System.currentTimeMillis());
@@ -1140,14 +1271,20 @@ public class TPCCLoader extends Loader{
 	long startTimeMS = new java.util.Date().getTime();
 	lastTimeMS = startTimeMS;
 
-	long totalRows = loadWhse(numWarehouses);
-	totalRows += loadItem(configItemCount);
-	totalRows += loadStock(numWarehouses, configItemCount);
-	totalRows += loadDist(numWarehouses, configDistPerWhse);
-	totalRows += loadCust(numWarehouses, configDistPerWhse,
-			      configCustPerDist);
-	totalRows += loadOrder(numWarehouses, configDistPerWhse,
-			       configCustPerDist);
+	// System.out.println("Loading warehouses");
+	// long totalRows = loadWhse(numWarehouses);
+	// System.out.println("Loading items");
+	// totalRows += loadItem(configItemCount);
+	System.out.println("Loading stocks " + configItemCount);
+	long totalRows = loadStock(numWarehouses, configItemCount);
+	// System.out.println("Loading dist");
+	// totalRows += loadDist(numWarehouses, configDistPerWhse);
+	// System.out.println("Loading customers");
+	// totalRows += loadCust(numWarehouses, configDistPerWhse,
+	// 		      configCustPerDist);
+	// System.out.println("Loading orders");
+	// totalRows += loadOrder(numWarehouses, configDistPerWhse,
+	// 		       configCustPerDist);
 
 	long runTimeMS = (new java.util.Date().getTime()) + 1 - startTimeMS;
 	endDate = new java.util.Date();
@@ -1157,7 +1294,7 @@ public class TPCCLoader extends Loader{
 	LOG.debug("       End Time = " + endDate);
 	LOG.debug("       Run Time = " + (int) runTimeMS / 1000 + " Seconds");
 	LOG.debug("    Rows Loaded = " + totalRows + " Rows");
-	LOG.debug("Rows Per Second = " + (totalRows / (runTimeMS / 1000)) + " Rows/Sec");
+	//LOG.debug("Rows Per Second = " + (totalRows / (runTimeMS / 1000)) + " Rows/Sec");
 	LOG.debug("------------------------------------------------------");
 	
     }
