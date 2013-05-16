@@ -20,3 +20,8 @@ oltpbench/.#kate-*
 ## -------------------------------
 oltpbench/~*
 oltpbench/*~
+
+writeup/~*
+writeup/*~
+writeup/writeup.aux
+writeup/writeup.log

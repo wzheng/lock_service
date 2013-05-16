@@ -601,6 +601,7 @@ public class Worker implements Runnable {
             RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
 	    this.done = true;
         }
+        System.out.println("abort complete");
     }
 
     // TODO: in the future, when there are machine failures/other failures, should
