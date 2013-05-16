@@ -30,10 +30,24 @@ Our distributed database implements a simple key-value storage system with table
 It also has transactional support for two-phase locking and two-phase commit. Two-phase commits are supported by an RPC protocol. Whenever a transaction is begun, a new thread is created to send and receive RPC requests used in two-phase commit.
 
 \section*{Partitioning}
-This distributed database provides support for repartitioning the data among the servers. The number of partitions can be chosen by the user.  Hash partitioning is used because it scales well with the number of inserts. While range partitioning could also be used, it is more of a challenge to manage as the number of inserts increases.
+Some kind of partitioning scheme is required in a distributed database. There are several ways of approaching
+this topic. The two most popular methods are hashing and range partitioning.
 
-\subsection*{Repartitioning}
-Repartitioning is performed by examining how often certain data items are accessed at the same time. This metric, known as \textit{affinity factors}, is stored on each server. When repartitioning is performed, one server is designated as the master. The master collects the affinity factors from each server, and it runs an algorithm to determine the repartitioning. The master then sends the workers the new table states, and each worker updates its table.
+Range partitioning seems attractive when transactions tend to access records that are close to each other
+in a table. This often happens when transactions perform a large number of range scans. However, range partitioning
+requires some knowledge of the schema, and is often difficult to implement. It is also easy to get hotspots for
+range partitioning.
+
+On the other hand, hashing tends to randomize keys. This partitioning scheme is not so great for range scans
+since it will most likely distribute similar keys far away from each other. However, hashing does have its advantages.
+It is very easy to implement, which is the main reason why so many industrial implementations use hashing as its
+partitioning method. It is also easy to scale up as the number of keys increases. 
+
+For this project, we decided to implement a hashing-based partitioning scheme, with an adjustable number of partitions.
+Based on the workload and the machine limit, the user can choose to either to have fine-grained partitioning or
+coarse-grained partitioning.
+
+\subsection*{Dynamic Re-Partitioning}
 
 \section*{Deadlock detection}
 \subsection*{Background}
