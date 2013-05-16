@@ -134,17 +134,6 @@ public class Server implements Runnable  {
 	return activeWorkers.size();
     }
 
-    public String getActiveWorkers() {
-	String str = "<";
-	Iterator it = activeWorkers.keySet().iterator();
-	while (it.hasNext()) {
-	    str += ((TransactionId) it.next()).toString();
-	    str += "  ";
-	}
-	str += ">";
-	return str;
-    }
-
     public HashMap<String, HashMap<String, String> > getPartitionData(int partition) {
 	return this.dataStore.getPartition(partition);
     }
@@ -174,11 +163,8 @@ public class Server implements Runnable  {
             String method = reqIn.getMethod();
             Map<String, Object> params = reqIn.getNamedParams();
             RPCRequest rpcReq = new RPCRequest(method, params);
-
-
-	    // TODO: multiple levels of commits may cause reconfiguration problems
-	    // && !this.activeWorkers.containsKey(rpcReq.tid)
-            if (method.equals("start")) {
+	    
+            if (method.equals("start") && !this.activeWorkers.containsKey(rpcReq.tid)) {
 
 		if (this.reconfigState == ReconfigState.CHANGE) {
 		    // does not start new transactions during reconfiguration
