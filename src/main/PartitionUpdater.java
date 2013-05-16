@@ -180,6 +180,21 @@ public class PartitionUpdater implements Runnable {
     // master reconfiguration
     public void configureMaster() {
 
+	// THIS IS FOR TESTING ONLY
+	// COMMENT OUT WHEN NOT BENCHMARKING
+	while (true) {
+	    Object obj = queue.get();
+	    if (obj.equals("")) {
+		continue;
+	    }
+
+	    RPCRequest reqIn = (RPCRequest) obj;
+	    HashMap<String, Object> args = (HashMap<String, Object>) reqIn.args;
+	    if (args.get("Method").equals("start-configuration")) {
+		break;
+	    }
+	}
+
         // periodically contact all ther servers for AF information
 
 	while (true) {
