@@ -66,8 +66,8 @@ public class Worker implements Runnable {
 	
 	this.partitions = new ArrayList<Integer>();
 	this.cmhProcessor = new CMHProcessor(server);
-	cmhThread = new Thread(this.cmhProcessor);
-	cmhThread.start();
+	//cmhThread = new Thread(this.cmhProcessor);
+	//cmhThread.start();
     }
 
     public void setWFGWorker(WFGWorker w){
@@ -925,7 +925,7 @@ public class Worker implements Runnable {
         }
 
 	this.server.threadDone(txnId);
-	this.cmhProcessor.stopThread();
+	//this.cmhProcessor.stopThread();
 
     }
 
