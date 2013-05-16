@@ -20,7 +20,7 @@ public class Server implements Runnable  {
     private int numThreads;
     private HashMap<TransactionId, CommunicationQ> activeWorkers;
     private HashMap<TransactionId, CommunicationQ> activeDeadlockWorkers;
-	private HashMap<TransactionId, CommunicationQ> activeWFGWorkers;
+	//private HashMap<TransactionId, CommunicationQ> activeWFGWorkers;
 
     // reconfiguration
     private boolean isConfiguring;
@@ -63,7 +63,7 @@ public class Server implements Runnable  {
 
 	this.activeWorkers = new HashMap<TransactionId, CommunicationQ>();
 	this.activeDeadlockWorkers = new HashMap<TransactionId, CommunicationQ>();
-	this.activeWFGWorkers = new HashMap<TransactionId, CommunicationQ>();
+	//this.activeWFGWorkers = new HashMap<TransactionId, CommunicationQ>();
     }
 
     
@@ -174,7 +174,7 @@ public class Server implements Runnable  {
     public synchronized void threadDone(TransactionId tid) {
 	this.activeWorkers.remove(tid);
 	this.activeDeadlockWorkers.remove(tid);
-	this.activeWFGWorkers.remove(tid);
+	//this.activeWFGWorkers.remove(tid);
     }
 
     // check for incoming requests, spawn new worker threads as necessary
@@ -218,19 +218,19 @@ public class Server implements Runnable  {
 		    DeadlockWorker dw = new DeadlockWorker(this, q2, w);
 		    (new Thread(dw)).start();
 		    
-		    CommunicationQ q3 = new CommunicationQ();
-		    this.activeWFGWorkers.put(rpcReq.tid, q3);
-		    WFGWorker wf = new WFGWorker(this, q3);
-		    (new Thread(wf)).start();
-		    w.setWFGWorker(wf);
+		    //CommunicationQ q3 = new CommunicationQ();
+		    //this.activeWFGWorkers.put(rpcReq.tid, q3);
+		    //WFGWorker wf = new WFGWorker(this, q3);
+		    //(new Thread(wf)).start();
+		    //w.setWFGWorker(wf);
 		    
 		    //System.out.println("Started new worker");
 			if (rpcReq.method.equals("deadlock")){
 				q2.put(rpcReq);
 			}
-			else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
-				q3.put(rpcReq);
-			}
+			//else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
+			//	q3.put(rpcReq);
+			//}
 			else if (q != null) {
 			    q.put(rpcReq);
 			}
@@ -240,13 +240,13 @@ public class Server implements Runnable  {
             	//System.out.println("Putting req " + method + " in queue " + rpcReq);
 		CommunicationQ q = this.activeWorkers.get(rpcReq.tid);
 		CommunicationQ q2 = this.activeDeadlockWorkers.get(rpcReq.tid);
-		CommunicationQ q3 = this.activeWFGWorkers.get(rpcReq.tid);
+		//CommunicationQ q3 = this.activeWFGWorkers.get(rpcReq.tid);
 		if (rpcReq.method.equals("deadlock") && q2 != null){
 			q2.put(rpcReq);
 		}
-		else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
-			q3.put(rpcReq);
-		}
+		//else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
+		//	q3.put(rpcReq);
+		//}
 		else if (q != null) {
 		    q.put(rpcReq);
 		}
