@@ -22,12 +22,67 @@
 %%%%%%%%%% MAIN TEXT STARTS HERE %%%%%%%%%%
 
 \section*{Introduction}
-Our project implements a distributed database with dynamic repartioning. Repartitioning is performed to reflect the database workload such that items accessed together are placed on the same server. Our project also implements distributed deadlock detection and resolution.
+
+Although distributed databases have been around for a while, and many have been commericialized, there are still many
+interesting problems to be solved in this area. Our 6.830 project aims to implement a simple distributed database
+and explore some of these problems.
+
+One of the problems we aim to tackle is data partitioning. Although some smaller distributed data may decide to replicate
+data across all of the machines, this will not be scalable in the long run, as the amount of data in the database
+increases. Therefore, {\em some} kind of data partitioning scheme is needed. Partitioning often brings related problems, such
+as hotspots (where ) and . Our project aims to explore workload-based re-partitioning to increase throughput.
+
+Another problem that is present in distributed databases is deadlock detection. Deadlocks are usually rare, but it is necessary
+to be able to detect them efficiently so that the database can continue to handle transactions.
+
+
+\section*{Previous Work}
+
+TO BE DONE
 
 \section*{Data storage}
-Our distributed database implements a simple key-value storage system with transaction support. 
-The interface for accessing data contains the two operations: \texttt{write(table\_name, key, value)} and \texttt{read(table\_name, key)}.
 
+\subsection*{Design}
+Our distributed database implements a key-value storage system with transaction support. Unlike a pure key-value storage, however,
+it keeps the concept of tables. The tables are organized as {\em (primary key, record value)}.
+The interface for accessing data contains the two operations: \texttt{write(table\_name, key, value)} and \texttt{read(table\_name, key)}.
+Thus, the data storage supports atomic groups of reads and writes.
+
+\subsection*{Implementation}
+The implementation of the data storage is based on hash tables. Each partition contains a hash table storing the table names and a list
+of key-values associated with that table. Since the hashing is done on the primary keys, a partition needs to store smaller key-value
+stores that correspond to different tables. 
+
+\section*{Two Phase Locking and Two Phase Commit}
+
+\subsection*{Background}
+The database needs to be able to handle distributed transactions. A commit should make sure the database shows all of a transaction's
+changes, and an abort should make sure none of the changes are made. There can be no inconsistent state in here. Therefore, two phase
+locking is there to make sure that the read values are read correctly, and that the write values are written correctly and not
+overwritten by another transaction by the time commit happens.
+
+On the other hand, two phase commit guarantees commits and aborts to be consistent across all machines in case of failures. The 
+two phase commit protocol selects a coordinator for each transaction, and the coordinator ultimately decides whether that particular
+transaction will commit and abort after gathering information from all of its cohorts (the other servers involved in the transaction).
+
+\subsection*{Implementation}
+
+Each server keeps its own lock table. The lock table provides both read locks and write locks. For this implementation, we only provide
+record-level locking. Transactions are only able to lock specific records. However, in the future we plan on supporting hierarchical
+locking. 
+
+The implementation for two-phase locking is strong strict two phase locking. Both read and write locks are held until the transaction
+commits or aborts. This is the implementation because the code is written in such a way that the transaction's read and write values
+can be requested multiple times until commit happens. Therefore, the end of phase 2 is right before commit happens, and SS2PL is the
+correct implementation to ensure atomic transactions.
+
+Two phase commit requires a coordinator for each transaction. Every transaction selects a coordinator the moment
+it starts. Since every transaction is routed to a server to start, that server is the coordinator. The coordinator then looks
+into its partition table for a list of all the cohorts it needs to contact. When commit or abort happens, the coordinator
+contacts the necessary servers to get a list of votes, and 2PC proceeds as normal.
+
+Our 2PC protocol is limited because the recovery process has not been written yet. Other than the logging and the recovery
+process, the basic 2PC algorithm is implemented. In the future we would like to look into presumed commit or presumed abort.
 
 \section*{Partitioning}
 
@@ -65,14 +120,43 @@ A good and efficient partitioning scheme is very difficult design. The two previ
 other. Thus, in a generalized database, one would have to carefully collect transaction profiles in order to develop a good
 re-partitioning.
 
-In our database we mainly tackle the second problem. If we have a set of small transactions that are run repeatedly, modifying
-and reading a very small number of records, then it is better to reduce the number of distributed transactions as much as possible.
-The main idea of our partitioning scheme is to hash the primary keys, but finely partition the data set enough so that we can
-counter the randomness of hashing. 
+In our database we try to reduce the number of distributed transactions executed. If we have a set of small transactions that are 
+run repeatedly, modifying and reading a small number of records, then it is better to reduce the number of distributed transactions 
+as much as possible. The main idea of our partitioning scheme is to hash the primary keys, but finely partition the data set enough 
+so that we can counter the randomness of hashing. 
 
 Partitions are related to each other based on how often they are run together in the same transaction. For each partition pair, we
-keep an {\em affinity factor} that shows how closely related two partitions are with each other. The {\em affinity factors}. 
-commits, 
+keep an {\em affinity factor} (or {\em AF}) that shows how closely related two partitions are with each other. The {\em AF} are
+increased only at the coordinator of a transaction. The reconfiguration plan is constructed based on the {\em AF} information
+
+\subsection*{Implementation}
+
+Each server keeps track of two tables. The first table is a partition table. The partition table stores mappings of partition number
+to a server address. The partition table also has a single version number. The second table is an {\em AF} table.
+The {\em AF} table keeps a list of pairs of partitions, and a number indicating the relationship between these two partitions.
+Every time a successful commit happens, the coordinator of that transaction increases the \{\em AF} number for each pair of participating
+partitions. 
+
+There is a server designated as the reconfiguration master. Currently, the master's identity does not change. The master server
+periodically sends out requests for {\em AF} information. Once the master server receives all of the {\em AF} information, it
+constructs a weighted graph of all partitions in the server pool. The heavier the edge, the closer the partitions should be 
+put next to each other. 
+
+The master then runs an algorithm to produce a reconfiguration plan. The algorithm is very simple. It simply takes the heaviest
+edge in the graph and brings the two partitions together on the same machine, if they are not already on the same machine.
+If a partition is moved from machine A to machine B, another partition must be moved from machine B to machine A. Note that the
+assumption here is that all partitions are almost equally involved in the workload. 
+
+Once the master decides on a plan, it sends the plan to all of the workers. The master and the workers then start the reconfiguration
+algorithm. The server first changes its reconfiguration state to {\em CHANGE}, and waits for all current transactions to commit
+or abort. While in this state, the server does not receive any more transactions.
+If a server does not have a local transaction started, or all of its transactions have been finished, the server goes
+to the next step, where it looks at the reconfiguration plan and sends all of the partitions that need to be sent. Because of the 
+algorithm, most of the servers will not need to send or receive any partition. After this step is done, the server updates its
+partition table and increases the table's version number. It then changes the reconfiguration state to {\em READY}.
+
+
+
 
 \section*{Deadlock detection}
 \subsection*{Background}
@@ -104,6 +188,8 @@ Further optimizations that could occur but that we did not implement include loc
 
 \section*{Analysis and Evaluation}
 
+\subsection*{Reconfiguration Evaluation}
+
 Uniform distribution of keys:
 
 20 partitions, 4 threads, 4000 keys; re-partitioning sleeps for 5 seconds; 1200 transactions total
@@ -123,9 +209,9 @@ no par: Total TPS: 34.04016002821602
 yes par: Total TPS: 29.402536313413563
 no par: Total TPS: 28.96568315101926
 
-8 machines:
-yes par: Total TPS: 24.515095597585976
-no par: Total TPS: 22.54833324028209
+%8 machines:
+%yes par: Total TPS: 24.515095597585976
+%no par: Total TPS: 22.54833324028209
 
 80 partitions, 4 threads, 4000 keys; re-partitioning sleeps for 5 seconds; 1200 transactions total
 
@@ -138,14 +224,38 @@ yes par: Total TPS: 34.70860934996866
 no par: Total TPS: 37.0490862003126
 
 6 machines:
-yes par: 
-no par: 
+yes par: Total TPS: 29.641588176339773
+no par: Total TPS: 29.91988314667165
+
+Smaller key partitioning, 20 partitions, 4 threads, 4000 keys; 5 second sleep, 1200 txns
+2 machines:
+yes par: Total TPS: 37.47209308960059
+no par: Total TPS: 37.2844507754791
+
+4 machines:
+yes par: Total TPS: 35.73265120588351
+no par: Total TPS: 34.97919960743945
+
+6 machines:
+yes par: Total TPS: 31.307083786712987
+no par: Total TPS: 29.435936593733896
+
+Even smaller key partitioning, 80 partitions, 4 threads, 4000 keys; 5 second sleep, 1200 txns
+
+6 machines:
+no par: Total TPS: 27.90082070515909
+yes par: Total TPS: 29.441543379468136
 
 8 machines:
-yes par: 
 no par: 
+Total TPS: 21.972720045990204
+Total TPS: 21.619292443193743
+yes par: 
+Total TPS: 24.118879651555243
+Total TPS: 22.361452467945956
 
 
+\subsection*{Discussion}
 
 \section*{Future Work}
 
