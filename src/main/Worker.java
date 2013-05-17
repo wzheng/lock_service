@@ -110,146 +110,146 @@ public class Worker implements Runnable {
     	
     }
     
-    private class LockTask extends TimerTask {
-    	private Server server;
-    	private String table;
-    	private String key;
-    	private TransactionId tid;
-    	private int partNum;
-    	private TransactionContext txnContext;
-    	private boolean locked;
-    	private HashMap<String, HashSet<String>> writeLocked;
-    	private CMHProcessor cmhProcessor;
-    	private HashSet<TransactionId> wfg;
-    	private boolean deadlocked;
-    	RPCRequest rpcReq;
-
-    	public LockTask(Server server, String table, String key, int partNum,
-    			TransactionId tid, TransactionContext txnContext,
-    			HashMap<String, HashSet<String>> writeLocked,
-    			CMHProcessor cmhProcessor, RPCRequest rpcReq) {
-	    // TODO Auto-generated constructor stub
-	    this.server = server;
-	    this.table = table;
-	    this.key = key;
-	    this.partNum = partNum;
-	    this.tid = tid;
-	    this.txnContext = txnContext;
-	    this.writeLocked = writeLocked;
-	    this.cmhProcessor = cmhProcessor;
-	    this.wfg = null;
-	    locked = false;
-	    this.deadlocked = false;
-	    this.rpcReq = rpcReq;
-	}
-    	public boolean isLocked(){
-	    return locked;
-    	}
-    	
-    	public HashSet<TransactionId> getWFG(){
-	    return wfg;
-    	}
-    	public boolean deadlocked(){
-	    return deadlocked;
-    	}
-
-	@Override
-	    public void run(){
-
-	    // periodically lock it and allow the thread to return
-	    // so we can get deadlock detection
-	    locked = this.server.lockW(key + table, tid);
-	    wfg = this.server.getWFG(tid);
-	    boolean flag = true;
-	    long startMillis = System.currentTimeMillis();
-	    int attempts = 0;
-	    boolean checkingForLock = true;
-	    while (checkingForLock){
-		try {
-		    Thread.sleep(20);
-		} catch (InterruptedException e) {
-		    // TODO Auto-generated catch block
-		    e.printStackTrace();
-		}
-		if (isLocked()){
-		    System.out.println("LOCK ACQUIRED");
-		    //cancel();
-		    break;
-		}
-		else{
-		    System.out.println("NOT ACQUIRED");
-		    if (System.currentTimeMillis() - startMillis > 500){
-			checkingForLock = false;
-			HashMap<String, Object> args = new HashMap<String, Object>();
-			RPCRequest newReq = new RPCRequest("abort", server.getAddress(), rpcReq.tid, args);
-			RPC.send(rpcReq.replyAddress, "abort", "001", newReq.toJSONObject());
-			System.out.println("Deadlock detected, abort sent");
-			deadlocked = true;
-			cancel();
-			break;
-		    }
-		    /*
-		      if  (startMillis - System.currentTimeMillis() > 100){
-		      System.out.println("Deadlock detected");
-		      cancel();
-		      }
-		    */
-		    /*
-		      if (attempts++ > 5){
-		      System.out.println("Deadlock");
-		      deadlocked = true;
-		      cancel();
-		      HashMap<String, Object> args = new HashMap<String, Object>();
-		      RPCRequest newReq = new RPCRequest("abort", server.getAddress(), rpcReq.tid, args);
-		      RPC.send(rpcReq.replyAddress, "abort", "001", newReq.toJSONObject());
-		      break;
-		      }
-		    */
-		    if (flag){
-			HashSet<TransactionId> wf = server.getWFG(tid);
-			DeadlockTest.print("WFG for TID " + tid.getTID());
-			String s = "";
-			for (TransactionId x : wf){
-			    s += x.getTID() + ", ";
-			    /*
-			      if (server.getWFG(x).contains(tid)){
-			      System.out.println("DEADLOCK");
-			      }
-			    */
-			    //getGlobalWFG(x);
-			    if (wfg.contains(tid)){
-				System.out.println("DEADLOCK");
-			    }
-			}
-			DeadlockTest.print(s);
-			cmhProcessor.generateMessage(tid, wf);
-			flag = true;
-			//break;
-		    }
-		        	
-		}
-	    }
-	    //this.server.lockW(key + table, tid);
-	    //System.out.println("lockW " + key + table);
-	    //		    HashSet<String> set = writeLocked.get(table);
-	    //		    if (set == null) {
-	    //		    	set = new HashSet<String>();
-	    //		    }
-	    //		    set.add(key);
-	    //		    writeLocked.put(table, set);
-	    //		    Integer part = new Integer(partNum);
-	    //		    HashMap<String, HashMap<String, String> > temp = writeSet.get(part);
-	    //		    if (temp == null) {
-	    //		    	temp = new HashMap<String, HashMap<String, String> >();
-	    //		    	temp.put(table, new HashMap<String, String>());
-	    //		    }
-	    //		    HashMap<String, String> kv = temp.get(table);
-	    //		    kv.put(key, (String) txnContext.write_set.get(table).get(key));
-	    //		    temp.put(table, kv);
-	    //		    writeSet.put(part, temp);
-	    cancel();
-    	}
-    }
+//    private class LockTask extends TimerTask {
+//    	private Server server;
+//    	private String table;
+//    	private String key;
+//    	private TransactionId tid;
+//    	private int partNum;
+//    	private TransactionContext txnContext;
+//    	private boolean locked;
+//    	private HashMap<String, HashSet<String>> writeLocked;
+//    	private CMHProcessor cmhProcessor;
+//    	private HashSet<TransactionId> wfg;
+//    	private boolean deadlocked;
+//    	RPCRequest rpcReq;
+//
+//    	public LockTask(Server server, String table, String key, int partNum,
+//    			TransactionId tid, TransactionContext txnContext,
+//    			HashMap<String, HashSet<String>> writeLocked,
+//    			CMHProcessor cmhProcessor, RPCRequest rpcReq) {
+//	    // TODO Auto-generated constructor stub
+//	    this.server = server;
+//	    this.table = table;private
+//	    this.key = key;
+//	    this.partNum = partNum;
+//	    this.tid = tid;
+//	    this.txnContext = txnContext;
+//	    this.writeLocked = writeLocked;
+//	    this.cmhProcessor = cmhProcessor;
+//	    this.wfg = null;
+//	    locked = false;
+//	    this.deadlocked = false;
+//	    this.rpcReq = rpcReq;
+//	}
+//    	public boolean isLocked(){
+//	    return locked;
+//    	}
+//    	
+//    	public HashSet<TransactionId> getWFG(){
+//	    return wfg;
+//    	}
+//    	public boolean deadlocked(){
+//	    return deadlocked;
+//    	}
+//
+//	@Override
+//	    public void run(){
+//
+//	    // periodically lock it and allow the thread to return
+//	    // so we can get deadlock detection
+//	    locked = this.server.lockW(key + table, tid);
+//	    wfg = this.server.getWFG(tid);
+//	    boolean flag = true;
+//	    long startMillis = System.currentTimeMillis();
+//	    int attempts = 0;
+//	    boolean checkingForLock = true;
+//	    while (checkingForLock){
+//		try {
+//		    Thread.sleep(20);
+//		} catch (InterruptedException e) {
+//		    // TODO Auto-generated catch block
+//		    e.printStackTrace();
+//		}
+//		if (isLocked()){
+//		    System.out.println("LOCK ACQUIRED");
+//		    //cancel();
+//		    break;
+//		}
+//		else{
+//		    System.out.println("NOT ACQUIRED");
+//		    if (System.currentTimeMillis() - startMillis > 500){
+//			checkingForLock = false;
+//			HashMap<String, Object> args = new HashMap<String, Object>();
+//			RPCRequest newReq = new RPCRequest("abort", server.getAddress(), rpcReq.tid, args);
+//			RPC.send(rpcReq.replyAddress, "abort", "001", newReq.toJSONObject());
+//			System.out.println("Deadlock detected, abort sent");
+//			deadlocked = true;
+//			cancel();
+//			break;
+//		    }
+//		    /*
+//		      if  (startMillis - System.currentTimeMillis() > 100){
+//		      System.out.println("Deadlock detected");
+//		      cancel();
+//		      }
+//		    */
+//		    /*
+//		      if (attempts++ > 5){
+//		      System.out.println("Deadlock");
+//		      deadlocked = true;
+//		      cancel();
+//		      HashMap<String, Object> args = new HashMap<String, Object>();
+//		      RPCRequest newReq = new RPCRequest("abort", server.getAddress(), rpcReq.tid, args);
+//		      RPC.send(rpcReq.replyAddress, "abort", "001", newReq.toJSONObject());
+//		      break;
+//		      }
+//		    */
+//		    if (flag){
+//			HashSet<TransactionId> wf = server.getWFG(tid);
+//			DeadlockTest.print("WFG for TID " + tid.getTID());
+//			String s = "";
+//			for (TransactionId x : wf){
+//			    s += x.getTID() + ", ";
+//			    /*
+//			      if (server.getWFG(x).contains(tid)){
+//			      System.out.println("DEADLOCK");
+//			      }
+//			    */
+//			    //getGlobalWFG(x);
+//			    if (wfg.contains(tid)){
+//				System.out.println("DEADLOCK");
+//			    }
+//			}
+//			DeadlockTest.print(s);
+//			cmhProcessor.generateMessage(tid, wf);
+//			flag = true;
+//			//break;
+//		    }
+//		        	
+//		}
+//	    }
+//	    //this.server.lockW(key + table, tid);
+//	    //System.out.println("lockW " + key + table);
+//	    //		    HashSet<String> set = writeLocked.get(table);
+//	    //		    if (set == null) {
+//	    //		    	set = new HashSet<String>();
+//	    //		    }
+//	    //		    set.add(key);
+//	    //		    writeLocked.put(table, set);
+//	    //		    Integer part = new Integer(partNum);
+//	    //		    HashMap<String, HashMap<String, String> > temp = writeSet.get(part);
+//	    //		    if (temp == null) {
+//	    //		    	temp = new HashMap<String, HashMap<String, String> >();
+//	    //		    	temp.put(table, new HashMap<String, String>());
+//	    //		    }
+//	    //		    HashMap<String, String> kv = temp.get(table);
+//	    //		    kv.put(key, (String) txnContext.write_set.get(table).get(key));
+//	    //		    temp.put(table, kv);
+//	    //		    writeSet.put(part, temp);
+//	    cancel();
+//    	}
+//    }
     
     public void setDeadlocked(boolean v){
     	isDeadlocked = v;
@@ -302,13 +302,14 @@ public class Worker implements Runnable {
 		//Timer timer = new Timer();  //At this line a new Thread will be created
 		//timer.schedule(new LockTask(this.server, key + table, tid), 0, 100); //delay in milliseconds
 		if (sendSA.equals(this.server.getAddress())) {
+			if(Server.DEADLOCK_DETECTION_WFG){
 		    long start = System.currentTimeMillis();
 		    while(!this.server.lockW(key+table, tid)){
 			if (System.currentTimeMillis() - start > 500){
 			    break;
 			}
 
-			System.out.println("not locking " + key+table + " for tid " + tid.getTID());
+			//System.out.println("not locking " + key+table + " for tid " + tid.getTID());
 			//wfgWorker.getGlobalWFG(tid);
 			if (server.getWFG(tid) != null){
 			    cmhProcessor.generateMessage(tid, server.getWFG(tid));
@@ -359,7 +360,10 @@ public class Worker implements Runnable {
 		    //RPC.send(rpcReq.replyAddress, "abort", "001", newReq.toJSONObject());
 		    //return;
 		    //}
-	        	
+			}	
+			else{
+				this.server.lockW(key+table, tid);
+			}
 		    System.out.println("lockW " + key + table + " by TID " + tid.getTID());
 
 		    HashSet<String> set = writeLocked.get(table);
@@ -604,7 +608,7 @@ public class Worker implements Runnable {
             RPC.send(rpcReq.replyAddress, "abort-reply", "001", newReq.toJSONObject());
 	    this.done = true;
         }
-        System.out.println("abort complete for tid " + rpcReq.tid.getTID());
+        //System.out.println("abort complete for tid " + rpcReq.tid.getTID());
     }
 
     // TODO: in the future, when there are machine failures/other failures, should

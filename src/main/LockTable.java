@@ -31,7 +31,7 @@ public class LockTable {
 
     public boolean lockW(String key, TransactionId tid) {
     	long startTime = System.currentTimeMillis();
-    	long timeout = 1000;
+    	long timeout = 2000;
     	boolean flag = true;
         //while (true) {
 
@@ -86,7 +86,7 @@ public class LockTable {
                 }
                 //System.out.println("locking " + key + " for tid " + tid.getTID() + " stuck");
                 wfg.put(tid, ret);
-       	     if (System.currentTimeMillis() - startTime > timeout){
+       	     if (Server.DEADLOCK_DETECTION_TIMEOUT && System.currentTimeMillis() - startTime > timeout){
      	     	RPCRequest args = new RPCRequest("abort", tid.getServerAddress(), tid,
      	     					 new HashMap<String, Object>());
      	     	RPC.send(tid.getServerAddress(), "abort", "001", args.toJSONObject());
@@ -94,7 +94,7 @@ public class LockTable {
      	     	//break;
      	     }
                 if (flag){
-		    //cmhDeadlockInitiate(tid);
+		    //cmhDeCEadlockInitiate(tid);
 		    flag = false;
                 } else {
                 	

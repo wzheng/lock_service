@@ -10,6 +10,10 @@ import com.thetransactioncompany.jsonrpc2.*;
  */
 
 public class Server implements Runnable  {
+	
+	//enable deadlocking
+	public static boolean DEADLOCK_DETECTION_WFG = true;
+	public static boolean DEADLOCK_DETECTION_TIMEOUT = true;
 
     private ServerAddress address;
     private LockTable lockTable;
@@ -214,9 +218,11 @@ public class Server implements Runnable  {
 		    (new Thread(w)).start();
 		    
 		    CommunicationQ q2 = new CommunicationQ();
+		    if(Server.DEADLOCK_DETECTION_WFG){
 		    this.activeDeadlockWorkers.put(rpcReq.tid, q2);
 		    DeadlockWorker dw = new DeadlockWorker(this, q2, w);
 		    (new Thread(dw)).start();
+		    }
 		    
 		    //CommunicationQ q3 = new CommunicationQ();
 		    //this.activeWFGWorkers.put(rpcReq.tid, q3);
@@ -225,7 +231,7 @@ public class Server implements Runnable  {
 		    //w.setWFGWorker(wf);
 		    
 		    //System.out.println("Started new worker");
-			if (rpcReq.method.equals("deadlock")){
+			if (Server.DEADLOCK_DETECTION_WFG && rpcReq.method.equals("deadlock")){
 				q2.put(rpcReq);
 			}
 			//else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
@@ -241,7 +247,7 @@ public class Server implements Runnable  {
 		CommunicationQ q = this.activeWorkers.get(rpcReq.tid);
 		CommunicationQ q2 = this.activeDeadlockWorkers.get(rpcReq.tid);
 		//CommunicationQ q3 = this.activeWFGWorkers.get(rpcReq.tid);
-		if (rpcReq.method.equals("deadlock") && q2 != null){
+		if (Server.DEADLOCK_DETECTION_WFG && rpcReq.method.equals("deadlock") && q2 != null){
 			q2.put(rpcReq);
 		}
 		//else if ((rpcReq.method.equals("get-wfg") || rpcReq.method.equals("wfg-response")) && q3 != null){
