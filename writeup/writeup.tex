@@ -206,9 +206,9 @@ The deadlock detector runs in a separate thread, so this can cause a performance
 
 Further optimizations that could occur but that we did not implement include localized deadlock detection and reduced probe frequency. That is, if the transactions in a WFG reside in the same server, the probing would not need to occur over RPC because the WFG would be local. This could save some RPC communication overhead in the real world, and because our database repartitions data according to how often values are accessed at the same time, this could present an opportunity to implement localized detection. The probe frequency could also be decreased following some optimizations provided by Chandy et al, perhaps by probing at certain time intervals.
 
-\section{Analysis and Evaluation}
+\section*{Analysis and Evaluation}
 
-\subsection{Reconfiguration Evaluation}
+\subsection*{Reconfiguration Evaluation}
 
 For the reconfiguration evaluation, tests were run to compare the performance of the database with and without reconfiguration.
 
@@ -277,18 +277,6 @@ Uniform distribution of keys:
 
 20 partitions, 4 threads, 4000 keys; re-partitioning sleeps for 5 seconds; 1200 transactions total
 
-\begin{tabular}{c c c}
-Number of machines & par & Total TPS \\
-\hline
-1 & n/a & 3327.7499051300097 \\
-2 & yes & 38.21019796642812\\
-2 & no & 38.060192839969815\\
-4 & yes & 35.254050893555075\\
-4 & no & 34.04016002821602\\
-6 & yes & 29.402536313413563 \\
-6 & no & 28.96568315101926 \\
-\end{tabular}
-\begin{comment}
 1 machine:
 Total TPS: 3327.7499051300097
 
@@ -307,23 +295,9 @@ no par: Total TPS: 28.96568315101926
 %8 machines:
 %yes par: Total TPS: 24.515095597585976
 %no par: Total TPS: 22.54833324028209
-\end{comment}
-\\
 
 80 partitions, 4 threads, 4000 keys; re-partitioning sleeps for 5 seconds; 1200 transactions total
 
-\begin{tabular}{c c c}
-Number of machines & par & Total TPS \\
-\hline
-2 & yes & 36.99719591919442\\
-2 & no & 36.14329578690912\\
-4 & yes & 34.70860934996866\\
-4 & no & 37.0490862003126\\
-6 & yes & 29.641588176339773\\
-6 & no & 29.91988314667165\\
-\end{tabular}
-
-\begin{comment}
 2 machines:
 yes par: Total Total TPS: 36.99719591919442
 no par: Total TPS: 36.14329578690912
@@ -335,21 +309,8 @@ no par: Total TPS: 37.0490862003126
 6 machines:
 yes par: Total TPS: 29.641588176339773
 no par: Total TPS: 29.91988314667165
-\end{comment}
 
 Smaller key partitioning, 20 partitions, 4 threads, 4000 keys; 5 second sleep, 1200 txns
-
-\begin{tabular}{c c c}
-Number of machines & par & Total TPS \\
-\hline
-2 & yes & 37.47209308960059\\
-2 & no & 37.2844507754791\\
-4 & yes & 35.73265120588351\\
-4 & no & 34.97919960743945\\
-6 & yes & 31.307083786712987\\
-6 & no & 29.435936593733896\\
-\end{tabular}
-\begin{comment}
 2 machines:
 yes par: Total TPS: 37.47209308960059
 no par: Total TPS: 37.2844507754791
@@ -361,7 +322,6 @@ no par: Total TPS: 34.97919960743945
 6 machines:
 yes par: Total TPS: 31.307083786712987
 no par: Total TPS: 29.435936593733896
-\end{comment}
 
 8 machines:
 yes par: Total TPS: 23.80654480871441
@@ -386,17 +346,6 @@ no par: Total TPS: 22.690909664403264
 
 Even smaller key partitioning, 80 partitions, 4 threads, 4000 keys; 5 second sleep, 1200 txns
 
-\begin{tabular}{c c c}
-Number of machines & par & Total TPS \\
-\hline
-6 & no & 27.90082070515909 \\
-6 & yes & 29.441543379468136 \\
-8 & no &  21.972720045990204 \\
-8 & no & 21.619292443193743 \\
-8 & yes &  24.118879651555243 \\
-8 & yes &  22.361452467945956 \\
-\end{tabular}
-\begin{comment}
 6 machines:
 no par: Total TPS: 27.90082070515909
 yes par: Total TPS: 29.441543379468136
@@ -408,12 +357,10 @@ Total TPS: 21.619292443193743
 yes par: 
 Total TPS: 24.118879651555243
 Total TPS: 22.361452467945956
-\end{comment}
 
+Small key partitioning, 80 partitions, 4 threads, 2000 keys, 5 sec sleep, 800 txns total
 
-%Small key partitioning, 80 partitions, 4 threads, 2000 keys, 5 sec sleep, 800 txns total
-
-%\fi
+\fi
 
 \section*{Future Work}
 
@@ -439,8 +386,6 @@ may still change in such a way so that the global set is inaccurate. Future work
 algorithms for global repartitioning, and find ways to repartition distributedly.
 
 While the deadlock detection scheme works correctly, it could be optimized to use fewer resources. Some of these optimizations include deadlock detection locally (if all transactions in a particular WFG are on the same server) or lowering the frequency of deadlock probing.
->>>>>>> ab064a3cec3b5889cdf258d49a3cba3415ff338b
-
 
 
 \section{Conclusion}
