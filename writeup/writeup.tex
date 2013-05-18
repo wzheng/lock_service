@@ -33,7 +33,9 @@ increases. Therefore, {\em some} kind of data partitioning scheme is needed. Par
 as hotspots (where ) and . Our project aims to explore workload-based re-partitioning to increase throughput.
 
 Another problem that is present in distributed databases is deadlock detection. Deadlocks are usually rare, but it is necessary
-to be able to detect them efficiently so that the database can continue to handle transactions.
+to be able to detect them efficiently so that the database can continue to handle transactions. Distributed deadlock detection
+is quite hard. Since deadlock can only be detected in a global way, this makes it very easy to falsely detect deadlocks and
+incorrectly abort transactions.
 
 
 \section*{Previous Work}
@@ -134,7 +136,7 @@ increased only at the coordinator of a transaction. The reconfiguration plan is 
 Each server keeps track of two tables. The first table is a partition table. The partition table stores mappings of partition number
 to a server address. The partition table also has a single version number. The second table is an {\em AF} table.
 The {\em AF} table keeps a list of pairs of partitions, and a number indicating the relationship between these two partitions.
-Every time a successful commit happens, the coordinator of that transaction increases the \{\em AF} number for each pair of participating
+Every time a successful commit happens, the coordinator of that transaction increases the {\em AF} number for each pair of participating
 partitions. 
 
 There is a server designated as the reconfiguration master. Currently, the master's identity does not change. The master server
@@ -153,9 +155,12 @@ or abort. While in this state, the server does not receive any more transactions
 If a server does not have a local transaction started, or all of its transactions have been finished, the server goes
 to the next step, where it looks at the reconfiguration plan and sends all of the partitions that need to be sent. Because of the 
 algorithm, most of the servers will not need to send or receive any partition. After this step is done, the server updates its
-partition table and increases the table's version number. It then changes the reconfiguration state to {\em READY}.
+partition table and increases the table's version number. It then changes the reconfiguration state to {\em READ}, and is ready
+to handle more transactions.
 
-
+When there is a reconfiguration happening, transactions can come in simultaneously. It is very important to make sure that the effects
+of the transactions are seen by all partitions. In our database we use a very conservative approach. Transactions that involve servers
+that are currently reconfiguring are aborted. Transactions that involve servers with different partition tables are also aborted.
 
 
 \section*{Deadlock detection}
@@ -190,6 +195,69 @@ Further optimizations that could occur but that we did not implement include loc
 
 \subsection*{Reconfiguration Evaluation}
 
+For the reconfiguration evaluation, tests were run to compare the performance of the database with and without reconfiguration.
+
+The tests are run with a variable number of partitions. The range of the keys are from 0 to 4000. The partitions are uniform in that the number
+of keys in each partition is roughly the same. The number of partitions are distributed evenly on the virtual servers.
+There are four threads running that make requests to the database. The four threads each
+represents one type of transaction. The transaction randomly reads 5 to 10 records, and randomly writes 5 to 10 records.
+The range of each transaction varies with each test.
+
+Figure 2 and 3 are the data plot for the first test. The number of servers is scaled from 2 to 6. I only
+limited it to 6 virtual servers because we see a significant performance reduction with 8 servers due to over-using the number
+of cores, thus causing interference between the threads. The four transactions each access 1/4 of the database. The test is 
+set up so that deadlock detection does not have to interfere. 
+
+\begin{figure}[h!]
+
+  \centering
+    \includegraphics[scale=0.7]{peval1.png}
+  \caption{Partition Test 1 -- 20 partitions}
+\end{figure}
+
+\begin{figure}[h!]
+
+  \centering
+    \includegraphics[scale=0.7]{peval2.png}
+  \caption{Partition Test 1 -- 80 partitions}
+\end{figure}
+
+As we can see, the partitioning did not cause a significant performance increase or decrease. Performance increase is not expected to be seen because
+the set of transactions access a random set of records from a rather large range of keys. Performance decrease is seen a little bit
+in figure 3, most likely due to the fact that because there are more partitions, the partitioning algorithm is moving partitions
+around, thus creating overhead.
+
+The second test was run with four transactions accessing a smaller range of keys. Figure 4 and 5 show the results.
+
+\begin{figure}[h!]
+
+  \centering
+    \includegraphics[scale=0.7]{peval3.png}
+  \caption{Partition Test 2 -- 20 partitions}
+\end{figure}
+
+\begin{figure}[h!]
+
+  \centering
+    \includegraphics[scale=0.7]{peval4.png}
+  \caption{Partition Test 2 -- 80 partitions}
+\end{figure}
+
+The second test also does not show a significant increase or decrease in performance. Although for 20 partitions 
+the throughput did improve when re-partitioning was added in, 80 partitions did not seem to help as much. The reason
+could be that the smaller range of keys were still too big such that with 80 partitions, the re-partitioning
+overhead dominated the benefits.
+
+All in all, re-partitioning does not help significantly with throughput. It seems to perform the best when 
+the transactions' access range is not significantly greater than the partition's range. However, it can have
+a worse effect if the partitions are too fine. Fine partitions do not work well because of the current algorithm.
+Its simplicity makes it work better in the case of larger partitions. With a more sophisticated algorithm,
+it would make sense for fine partitions to work well. Of course, it goes without saying that transactions that
+access random uniformly distributed data will not see any improvement in throughput. In this case, it also
+did not see much of a performance degradation.
+
+
+\iffalse
 Uniform distribution of keys:
 
 20 partitions, 4 threads, 4000 keys; re-partitioning sleeps for 5 seconds; 1200 transactions total
@@ -240,6 +308,27 @@ no par: Total TPS: 34.97919960743945
 yes par: Total TPS: 31.307083786712987
 no par: Total TPS: 29.435936593733896
 
+8 machines:
+yes par: Total TPS: 23.80654480871441
+no par: Total TPS: 23.19255322705625
+
+80 partitions:
+2 machines:
+yes par: Total TPS: 37.199258862500415
+no par: Total TPS: 39.710519111556735 
+
+4 machines:
+yes par: Total TPS: 36.90835800845145
+no par: Total TPS: 35.019810606907946
+
+6 machines:
+yes par: Total TPS: 30.139539684430922
+no par: Total TPS: 29.423631777261015
+
+8 machines:
+yes par: Total TPS: 24.060607266489672
+no par: Total TPS: 22.690909664403264
+
 Even smaller key partitioning, 80 partitions, 4 threads, 4000 keys; 5 second sleep, 1200 txns
 
 6 machines:
@@ -254,15 +343,32 @@ yes par:
 Total TPS: 24.118879651555243
 Total TPS: 22.361452467945956
 
+Small key partitioning, 80 partitions, 4 threads, 2000 keys, 5 sec sleep, 800 txns total
 
-\subsection*{Discussion}
+\fi
 
 \section*{Future Work}
 
 Clearly, this project is just the beginning of a much bigger project. Many questions are still left unanswered. 
 
 Currently, two-phase commit does not have recovery process built into it. This means that the database will not
-endure any kind of 
+endure any kind of temporary machine failure. Future work would be to add the recovery process and logging into
+the database.
+
+The database does not support complex queries such as joins and scans. This would be supported in the future.
+For a distributed key-value store, range scans are probably more important than actual database joins.
+
+Re-partitioning is a very interesting problem. There are many algorithms for dynamically finding the best
+partitioning scheme. It is not clear whether it is important to know the global state of the relationship
+between partitions, or if a mere local state will be sufficient. Knowing global state would require a master
+to gather all of the information. It has the advantage of being very accurate, but the disadvantage of being 
+rather slow.
+Local states, on the other hand, can perform ad-hoc partition transfers based on
+what a few servers think are the closely related partitions. The performance should be a lot faster.
+It is not clear whether local reconfigurations
+will cause the system to be very inaccurate. Even with a global set of information, the transactions' profiles
+may still change in such a way so that the global set is inaccurate. Future work in this area includes exploring better
+algorithms for global repartitioning, and find ways to repartition distributedly.
 
 
 
@@ -282,25 +388,15 @@ We implemented a distributed database that supports repartitioning and deadlock 
 
 \begin{description}
 
-
-
 \item Author, I. (Year). \emph{Book Title}, Publisher; Place of publication.
-
-
 
 \item Lamport, L. (1986), \emph{\LaTeX: A Document Preparation System}, Addison-Wesley; Reading, MA.
 
-
-
 \item Author, I. (Year). `Journal article title', \emph{Journal}, \textbf{Vol}, pp.first--last.
-
-
 
 \item Smith, A.D.A.C. and Wand, M.P. (2008). `Streamlined variance calculations for semiparametric
 
 mixed models', \emph{Statistics in Medicine}, \textbf{27}, pp.435--48.
-
-
 
 \end{description}
 
