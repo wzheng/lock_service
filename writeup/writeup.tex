@@ -205,6 +205,9 @@ We tested the simple case of two workers in separate threads wanting to obtain a
 \subsection{Reconfiguration Evaluation}
 
 For the reconfiguration evaluation, tests were run to compare the performance of the database with and without reconfiguration.
+Since we do not have multiple machines available, the reconfiguration tests are run on a single machine. Each virtual server
+consists of one thread for accepting RPC messages, one thread for reconfiguration, and one thread for spawning worker
+threads to handle transactions.
 
 The tests are run with a variable number of partitions. The range of the keys are from 0 to 4000. The partitions are uniform in that the number
 of keys in each partition is roughly the same. The number of partitions are distributed evenly on the virtual servers.
