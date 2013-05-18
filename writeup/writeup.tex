@@ -41,16 +41,16 @@ incorrectly abort transactions.
 \section{Previous Work}
 
 \subsection{Database partitioning}
-Ghandeharizadeh and DeWitt [cite] introduce a hybrid-range partitioning strategy, which optimizes partitioning by the types of queries and leading to a higher level of parallelism and load-balancing. It attempts to reduce load and provide load balancing.
+Ghandeharizadeh and DeWitt [2] introduce a hybrid-range partitioning strategy, which optimizes partitioning by the types of queries and leading to a higher level of parallelism and load-balancing. It attempts to reduce load and provide load balancing.
 
-Yu et al. [cite] introduce a partition and replicate strategy for a database which does not necessarily require a large number of partitions. This algorithm works well where the number of number of relations is small and the network is uniform in terms of processing speed.
+Yu et al. [5] introduce a partition and replicate strategy for a database which does not necessarily require a large number of partitions. This algorithm works well where the number of number of relations is small and the network is uniform in terms of processing speed.
 
-Liu and Chen [cite] describe a hash partitioning strategy for distributed query processing, expanding on the work of Yu et al. The strategy is described for relation partitioning where relations are unfragmented and replicated in a shared-nothing environment. They use a heuristic to determine which data should be partitioned to which site.
+Liu and Chen [3] describe a hash partitioning strategy for distributed query processing, expanding on the work of Yu et al. The strategy is described for relation partitioning where relations are unfragmented and replicated in a shared-nothing environment. They use a heuristic to determine which data should be partitioned to which site.
 
 \subsection{Deadlock detection}
-Chandy et al. [cite] described a distributed probing system in which a deadlock can be detected when a probe reaches its origin by following the WFG. A transaction waiting for a lock sends a probe with its transaction ID to any transactions it is waiting upon and other waiting transactions propagate this probe if they are also waiting.
+Chandy et al. [1] describe a distributed probing system in which a deadlock can be detected when a probe reaches its origin by following the WFG. A transaction waiting for a lock sends a probe with its transaction ID to any transactions it is waiting upon and other waiting transactions propagate this probe if they are also waiting.
 
-Mitchell and Merritt [cite] propose a probe-based deadlock detection algorithm which traverses the edges in the WFG backwards. Each transaction contains a public and private label, and the messages are propagated by the order label.
+Mitchell and Merritt [4] propose a probe-based deadlock detection algorithm which traverses the edges in the WFG backwards. Each transaction contains a public and private label, and the messages are propagated by the order label.
 
 There are also numerous other techniques that make use of constructing global data at a single point and determining deadlocks based on transaction locking information. However, these are prone to using out of date information in distributed settings.
 
@@ -184,7 +184,7 @@ A deadlock occurs when two or more process are requesting locks to items being h
 In a distributed system, deadlock detection has been the subject of numerous studies because the distributed nature adds some complexity to the system, so certain deadlock detection algorithms might not work in a distributed environment. Distributed deadlock detection can be done with the use of centralized servers which keep track of the state of a distributed system, or they can be performed in a completely distributed manner. One problem that could occur with deadlock detection is that deadlocks might be falsely detected, which can negatively impact a system's performance. Some specific causes of this would be message delays across servers or using stale information in the WFG computed at a central server.
 
 \subsection{Implementation}
-We decided to implement a fully distributed algorithm, proposed by Chandy, Misra, and Haas. This is an edge-chasing algorithm, which passes probe messages between resources directly. It is based on the AND model of deadlock detection, which implements The main idea is that the origin of the first probe knows that a deadlock is present if that probe message is received by the origin a second time. If a process is also waiting for a lock and receives a probe, it sends the probe message along to any other processes which hold locks to resources it is requesting. It retains the origin in its state so the origin will know that it sent that probe if the probe reappears there.
+We decided to implement a fully distributed algorithm, proposed by Chandy, Misra, and Haas. This is an edge-chasing algorithm, which passes probe messages between resources directly. It is based on the AND model of deadlock detection, which sends a probe to all other transactions it depends on which hold a lock to all of its resources. The main idea is that the origin of the first probe knows that a deadlock is present if that probe message is received by the origin a second time. If a process is also waiting for a lock and receives a probe, it sends the probe message along to any other processes which hold locks to resources it is requesting. It retains the origin in its state so the origin will know that it sent that probe if the probe reappears there.
 
 To implement this, we ran a specific thread for each worker on our distributed database which specifically handles these deadlock probes, independently of the main worker thread for a given transaction. This allows a worker to detect a deadlock while a specific lock is being requested. If a deadlock worker thread detects that a probe message it receives was initiated by itself, then it reports a deadlock to the worker thread and aborts the transaction. Specifically, the deadlock detection thread sets a flag in the worker thread, which then triggers an abort message to be sent by our RPC protocol to the same worker thread.
 
@@ -199,16 +199,10 @@ To implement this, we ran a specific thread for each worker on our distributed d
 
 We tested the simple case of two workers in separate threads wanting to obtain a lock held by the other concurrently. Suppose a worker W1 holds a lock on A and is attempting to get a lock on B. If a worker is attempting to lock a resource but cannot obtain the lock, a new probe message is sent to every other resource that holds a lock the worker requests. Suppose W2 holds the lock to B and wants the lock to A. If W1 first sends a probe message to W2, then W2 will send a probe message to W1 because W1 holds the lock to A, which W2 wants. W1 will receive this message and note that this message originated there, so it declares a deadlock and aborts itself.
 
-\subsection{Deadlock detection analysis}
-Our deadlock detection scheme can detect deadlocks fairly efficiently. If there are two deadlocked transactions on two servers, this can be detected by one of the transactions in a time range between 8 and 100 ms. As the number of servers increases, the detection time should scale with the number of deadlocked transactions because only deadlocked servers communicate with each other. Compared to timeout-based methods, this can be quicker and more reliable than setting an upper bound on the time spent trying to acquire a lock. In this case, it might be waiting for a transaction to complete although it's not deadlocked.
 
-The deadlock detector runs in a separate thread, so this can cause a performance overhead. These threads are always running when a transaction is occurring, and the threads are only utilized when a possible deadlock is happening. The number of probes from an origin is no more than the number of edges in the WFG, but there may be more probes from an origin if the deadlocks are not processed in a timely manner. We did not have a specific time requirement for deadlock detection and resolution, so deadlocks might not be resolved immediately if the process obtaining a lock is still running. We set a timeout to stop the process from trying to obtain a lock and to proceed with the abort if there is in fact a detected deadlock.
+\section{Analysis and Evaluation}
 
-Further optimizations that could occur but that we did not implement include localized deadlock detection and reduced probe frequency. That is, if the transactions in a WFG reside in the same server, the probing would not need to occur over RPC because the WFG would be local. This could save some RPC communication overhead in the real world, and because our database repartitions data according to how often values are accessed at the same time, this could present an opportunity to implement localized detection. The probe frequency could also be decreased following some optimizations provided by Chandy et al, perhaps by probing at certain time intervals.
-
-\section*{Analysis and Evaluation}
-
-\subsection*{Reconfiguration Evaluation}
+\subsection{Reconfiguration Evaluation}
 
 For the reconfiguration evaluation, tests were run to compare the performance of the database with and without reconfiguration.
 
@@ -270,6 +264,15 @@ Its simplicity makes it work better in the case of larger partitions. With a mor
 it would make sense for fine partitions to work well. Of course, it goes without saying that transactions that
 access random uniformly distributed data will not see any improvement in throughput. In this case, it also
 did not see much of a performance degradation.
+
+\subsection{Deadlock detection}
+Our deadlock detection scheme can detect deadlocks fairly efficiently. If there are two deadlocked transactions on two servers, this can be detected by one of the transactions in a time range between 8 and 100 ms. This time is measured from the start of the locking phase until the deadlock is discovered in a probe message. We tested this by setting up two servers in two threads that tried to lock a resource held by the other. Due to concurrency issues, this test had to be repeated until a deadlock occurred. If one transaction gained both locks first, there would be no deadlock; instead, the second transaction would wait for the first to complete.
+
+As the number of servers increases, the detection time should scale with the number of deadlocked transactions because only deadlocked servers communicate with each other. Compared to timeout-based methods, this can be quicker and more reliable than setting an upper bound on the time spent trying to acquire a lock. In this case, it might be waiting for a transaction to complete although it's not deadlocked.
+
+The deadlock detector runs in a separate thread, so this can cause a performance overhead. To measure the impact, we ran tests similar to those above with deadlock detection enabled and disabled, and we measured the transaction throughput. We measured this value for 20 and 80 partitions, with the number of keys from 0 to 4000. In every case, the number of transactions per second was reduced by 15\% with deadlocking enabled, compared to deadlocking disabled. This performance overhead could be significant in a large-scale system.
+
+These threads are always running when a transaction is occurring, and the threads are only utilized when a possible deadlock is happening. The number of probes from an origin is no more than the number of edges in the WFG, but there may be more probes from an origin if the deadlocks are not processed in a timely manner. We did not have a specific time requirement for deadlock detection and resolution, so deadlocks might not be resolved immediately if the process obtaining a lock is still running. We set a timeout to stop the process from trying to obtain a lock and to proceed with the abort if there is in fact a detected deadlock.
 
 
 \iffalse
@@ -362,7 +365,7 @@ Small key partitioning, 80 partitions, 4 threads, 2000 keys, 5 sec sleep, 800 tx
 
 \fi
 
-\section*{Future Work}
+\section{Future Work}
 
 Clearly, this project is just the beginning of a much bigger project. Many questions are still left unanswered. 
 
@@ -385,12 +388,27 @@ will cause the system to be very inaccurate. Even with a global set of informati
 may still change in such a way so that the global set is inaccurate. Future work in this area includes exploring better
 algorithms for global repartitioning, and find ways to repartition distributedly.
 
-While the deadlock detection scheme works correctly, it could be optimized to use fewer resources. Some of these optimizations include deadlock detection locally (if all transactions in a particular WFG are on the same server) or lowering the frequency of deadlock probing.
+Further optimizations for deadlock detection include localized deadlock detection and reduced probe frequency. That is, if the transactions in a WFG reside in the same server, the probing would not need to occur over RPC because the WFG would be local. This could save some RPC communication overhead in the real world, and because our database repartitions data according to how often values are accessed at the same time, this could present an opportunity to implement localized detection. The probe frequency could also be decreased following some optimizations provided by Chandy et al, perhaps by probing at certain time intervals.
 
 
 \section{Conclusion}
-We implemented a distributed database that supports repartitioning and deadlock detection. When repartitioning occurs, the heaviest-weighted partition pairs, weighted by the number of commits occurring between two partitions, are moved to the same server. Deadlock detection is achieved by implementing the 
+We implemented a distributed database that supports repartitioning and deadlock detection. The database is implemented using a key-value store with tables, and it supports two-phase locking and two-phase commit. When repartitioning occurs, the heaviest-weighted partition pairs, weighted by the number of commits occurring between two partitions, are moved to the same server. The database utilizes two-phase locking and two-phase commit for each transaction. Deadlock detection is achieved by implementing a probing scheme to check for a cycle in the locking WFG, and transactions are aborted under a deadlock.
 
+\section{References}
+[1]
+K. Chandy et al., "Distributed deadlock detection," ACM Transactions on Computer Systems (TOCS) 1, no. 2, 1983.
+
+[2]
+S. Ghandeharizadeh and D. DeWitt, "Hybrid-Range Partitioning Strategy: A New Declustering Strategy for Multiprocessor Database Machines," in Proceedings of the 16th International Conference on Very Large Data Bases, 1990.
+
+[3]
+C. Liu and H. Chen, "A hash partition strategy for distributed query processing," in Advances in Database Technology, 1996.
+
+[4]
+D. Mitchell and M. J. Merritt, "A distributed algorithm for deadlock detection and resolution," in Proceedings of the third annual ACM symposium on Principles of distributed computing, 1984.
+
+[5]
+C. T. Yu et al., "Partition strategy for distributed query processing in fast local networks," in IEEE Transactions on Software Engineering, 1989.
 
 
 
