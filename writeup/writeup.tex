@@ -30,7 +30,7 @@ and explore some of these problems.
 One of the problems we aim to tackle is data partitioning. Although some smaller distributed data may decide to replicate
 data across all of the machines, this will not be scalable in the long run, as the amount of data in the database
 increases. Therefore, {\em some} kind of data partitioning scheme is needed. Partitioning often brings related problems, such
-as hotspots (where ) and . Our project aims to explore workload-based re-partitioning to increase throughput.
+as hotspots where more data might reside at certain machines than others. Our project aims to explore workload-based re-partitioning to increase throughput.
 
 Another problem that is present in distributed databases is deadlock detection. Deadlocks are usually rare, but it is necessary
 to be able to detect them efficiently so that the database can continue to handle transactions. Distributed deadlock detection
@@ -141,8 +141,8 @@ as much as possible. The main idea of our partitioning scheme is to hash the pri
 so that we can counter the randomness of hashing. 
 
 Partitions are related to each other based on how often they are run together in the same transaction. For each partition pair, we
-keep an {\em affinity factor} (or {\em AF}) that shows how closely related two partitions are with each other. The {\em AF} are
-increased only at the coordinator of a transaction. The reconfiguration plan is constructed based on the {\em AF} information
+keep an {\em affinity factor} (or {\em AF}) that shows how closely related two partitions are with each other. The {\em AF}s are
+increased only at the coordinator of a transaction. The reconfiguration plan is constructed based on the {\em AF} information.
 
 \subsection{Implementation}
 
@@ -167,7 +167,7 @@ algorithm. The server first changes its reconfiguration state to {\em CHANGE}, a
 or abort. While in this state, the server does not receive any more transactions.
 If a server does not have a local transaction started, or all of its transactions have been finished, the server goes
 to the next step, where it looks at the reconfiguration plan and sends all of the partitions that need to be sent. Because of the 
-algorithm, most of the servers will not need to send or receive any partition. After this step is done, the server updates its
+algorithm, most of the servers will not need to send or receive any partitions. After this step is done, the server updates its
 partition table and increases the table's version number. It then changes the reconfiguration state to {\em READ}, and is ready
 to handle more transactions.
 
@@ -186,7 +186,7 @@ In a distributed system, deadlock detection has been the subject of numerous stu
 \subsection{Implementation}
 We decided to implement a fully distributed algorithm, proposed by Chandy, Misra, and Haas. This is an edge-chasing algorithm, which passes probe messages between resources directly. It is based on the AND model of deadlock detection, which sends a probe to all other transactions it depends on which hold a lock to all of its resources. The main idea is that the origin of the first probe knows that a deadlock is present if that probe message is received by the origin a second time. If a process is also waiting for a lock and receives a probe, it sends the probe message along to any other processes which hold locks to resources it is requesting. It retains the origin in its state so the origin will know that it sent that probe if the probe reappears there.
 
-To implement this, we ran a new thread for each transaction (separate from the transaction's main thread) on our distributed database which specifically handles these deadlock probes, independently of the main thread. This allows a worker to detect a deadlock while a specific lock is being requested. If a deadlock thread detects that a probe message it receives was initiated by itself, then it reports a deadlock to the worker thread and aborts the transaction. Specifically, the deadlock detection thread sets a flag in the transaction's main thread, which then triggers an abort message to be sent by our RPC protocol to itself.
+To implement this, we ran a new thread for each transaction (separate from the transaction's main thread) on our distributed database which specifically handles these deadlock probes, independently of the main thread. This allows a transaction to detect a deadlock while a specific lock is being requested. If a deadlock thread detects that a probe message it receives was initiated by itself, then it reports a deadlock to the main thread and aborts the transaction. Specifically, the deadlock detection thread sets a flag in the transaction's main thread, which then triggers an abort message to be sent by our RPC protocol to itself.
 
 \subsection{Test scenario}
 %[figure - simple probe messages, originating at W1]
@@ -194,10 +194,10 @@ To implement this, we ran a new thread for each transaction (separate from the t
 
   \centering
     \includegraphics[scale=0.9]{deadlock-message.png}
-  \caption{Probe message being propagated in network. The probe originating at W1 is sent to W2, and W2 sends the probe back to W1. W1 detects a deadlock upon arrival of the probe coming from W2.}
+  \caption{Deadlock probe message being propagated in network. The probe originating at W1 is sent to W2, and W2 sends the probe back to W1. W1 detects a deadlock upon arrival of the probe coming from W2.}
 \end{figure}
 
-We tested the simple case of two workers in separate threads wanting to obtain a lock held by the other concurrently. Suppose a worker W1 holds a lock on A and is attempting to get a lock on B. If a worker is attempting to lock a resource but cannot obtain the lock, a new probe message is sent to every other resource that holds a lock the worker requests. Suppose W2 holds the lock to B and wants the lock to A. If W1 first sends a probe message to W2, then W2 will send a probe message to W1 because W1 holds the lock to A, which W2 wants. W1 will receive this message and note that this message originated there, so it declares a deadlock and aborts itself.
+We tested the simple case of two transactions in separate threads wanting to obtain a lock held by the other concurrently. Suppose a transaction worker W1 holds a lock on A and is attempting to get a lock on B. If a transaction worker is attempting to lock a resource but cannot obtain the lock, a new probe message is sent to every other resource that holds a lock the transaction worker requests. Suppose W2 holds the lock to B and wants the lock to A. If W1 first sends a probe message to W2, then W2 will send a probe message to W1 because W1 holds the lock to A, which W2 wants. W1 will receive this message and note that this message originated there, so it declares a deadlock and aborts itself. Figure 1 shows the probe messages in a deadlocking scenario.
 
 
 \section{Analysis and Evaluation}
@@ -215,7 +215,7 @@ There are four threads running that make requests to the database. The four thre
 represents one type of transaction. The transaction randomly reads 5 to 10 records, and randomly writes 5 to 10 records.
 The range of each transaction varies with each test.
 
-Figure 2 and 3 are the data plot for the first test. The number of servers is scaled from 2 to 6. I only
+Figures 2 and 3 are the data plots for the first test. The number of servers is scaled from 2 to 6. We only
 limited it to 6 virtual servers because we see a significant performance reduction with 8 servers due to over-using the number
 of cores, thus causing interference between the threads. The four transactions each access 1/4 of the database. The test is 
 set up so that deadlock detection does not have to interfere. 
@@ -239,7 +239,7 @@ the set of transactions access a random set of records from a rather large range
 in figure 3, most likely due to the fact that because there are more partitions, the partitioning algorithm is moving partitions
 around, thus creating overhead.
 
-The second test was run with four transactions accessing a smaller range of keys. Figure 4 and 5 show the results.
+The second test was run with four transactions accessing a smaller range of keys. Figures 4 and 5 show the results.
 
 \begin{figure}[h!]
 
@@ -372,7 +372,7 @@ Small key partitioning, 80 partitions, 4 threads, 2000 keys, 5 sec sleep, 800 tx
 
 Clearly, this project is just the beginning of a much bigger project. Many questions are still left unanswered. 
 
-Currently, two-phase commit does not have recovery process built into it. This means that the database will not
+Currently, two-phase commit does not have a recovery process built into it. This means that the database will not
 endure any kind of temporary machine failure. Future work would be to add the recovery process and logging into
 the database.
 
