@@ -1,4 +1,4 @@
-\documentclass[a4paper, 10pt, notitlepage]{report}
+\documentclass[a4paper, 10pt, notitlepage]{article}
 
 \usepackage{amsfonts} % if you want blackboard bold symbols e.g. for real numbers
 \usepackage{graphicx} % if you want to include jpeg or pdf pictures
@@ -21,9 +21,9 @@
 
 %%%%%%%%%% MAIN TEXT STARTS HERE %%%%%%%%%%
 
-\section*{Introduction}
+\section{Introduction}
 
-Although distributed databases have been around for a while, and many have been commericialized, there are still many
+Although distributed databases have been around for a while, and many have been commercialized, there are still many
 interesting problems to be solved in this area. Our 6.830 project aims to implement a simple distributed database
 and explore some of these problems.
 
@@ -33,29 +33,42 @@ increases. Therefore, {\em some} kind of data partitioning scheme is needed. Par
 as hotspots (where ) and . Our project aims to explore workload-based re-partitioning to increase throughput.
 
 Another problem that is present in distributed databases is deadlock detection. Deadlocks are usually rare, but it is necessary
-to be able to detect them efficiently so that the database can continue to handle transactions.
+to be able to detect them efficiently so that the database can continue to handle transactions. The transactions involved in a distributed deadlock may be located at multiple servers, so a distributed version of deadlock detection is necessary.
 
 
-\section*{Previous Work}
+\section{Previous Work}
 
-TO BE DONE
+\subsection{Database partitioning}
+Ghandeharizadeh and DeWitt [cite] introduce a hybrid-range partitioning strategy, which optimizes partitioning by the types of queries and leading to a higher level of parallelism and load-balancing. It attempts to reduce load and provide load balancing.
 
-\section*{Data storage}
+Yu et al. [cite] introduce a partition and replicate strategy for a database which does not necessarily require a large number of partitions. This algorithm works well where the number of number of relations is small and the network is uniform in terms of processing speed.
 
-\subsection*{Design}
+Liu and Chen [cite] describe a hash partitioning strategy for distributed query processing, expanding on the work of Yu et al. The strategy is described for relation partitioning where relations are unfragmented and replicated in a shared-nothing environment. They use a heuristic to determine which data should be partitioned to which site.
+
+\subsection{Deadlock detection}
+Chandy et al. [cite] described a distributed probing system in which a deadlock can be detected when a probe reaches its origin by following the WFG. A transaction waiting for a lock sends a probe with its transaction ID to any transactions it is waiting upon and other waiting transactions propagate this probe if they are also waiting.
+
+Mitchell and Merritt [cite] propose a probe-based deadlock detection algorithm which traverses the edges in the WFG backwards. Each transaction contains a public and private label, and the messages are propagated by the order label.
+
+There are also numerous other techniques that make use of constructing global data at a single point and determining deadlocks based on transaction locking information. However, these are prone to using out of date information in distributed settings.
+
+
+\section{Data storage}
+
+\subsection{Design}
 Our distributed database implements a key-value storage system with transaction support. Unlike a pure key-value storage, however,
 it keeps the concept of tables. The tables are organized as {\em (primary key, record value)}.
 The interface for accessing data contains the two operations: \texttt{write(table\_name, key, value)} and \texttt{read(table\_name, key)}.
 Thus, the data storage supports atomic groups of reads and writes.
 
-\subsection*{Implementation}
+\subsection{Implementation}
 The implementation of the data storage is based on hash tables. Each partition contains a hash table storing the table names and a list
 of key-values associated with that table. Since the hashing is done on the primary keys, a partition needs to store smaller key-value
 stores that correspond to different tables. 
 
-\section*{Two Phase Locking and Two Phase Commit}
+\section{Two Phase Locking and Two Phase Commit}
 
-\subsection*{Background}
+\subsection{Background}
 The database needs to be able to handle distributed transactions. A commit should make sure the database shows all of a transaction's
 changes, and an abort should make sure none of the changes are made. There can be no inconsistent state in here. Therefore, two phase
 locking is there to make sure that the read values are read correctly, and that the write values are written correctly and not
@@ -65,7 +78,7 @@ On the other hand, two phase commit guarantees commits and aborts to be consiste
 two phase commit protocol selects a coordinator for each transaction, and the coordinator ultimately decides whether that particular
 transaction will commit and abort after gathering information from all of its cohorts (the other servers involved in the transaction).
 
-\subsection*{Implementation}
+\subsection{Implementation}
 
 Each server keeps its own lock table. The lock table provides both read locks and write locks. For this implementation, we only provide
 record-level locking. Transactions are only able to lock specific records. However, in the future we plan on supporting hierarchical
@@ -84,9 +97,9 @@ contacts the necessary servers to get a list of votes, and 2PC proceeds as norma
 Our 2PC protocol is limited because the recovery process has not been written yet. Other than the logging and the recovery
 process, the basic 2PC algorithm is implemented. In the future we would like to look into presumed commit or presumed abort.
 
-\section*{Partitioning}
+\section{Partitioning}
 
-\subsection*{Background}
+\subsection{Background}
 
 Some kind of partitioning scheme is required in a distributed database. There are several ways of approaching
 this topic. The two most popular methods are hashing and range partitioning.
@@ -105,7 +118,7 @@ For this project, we decided to implement a hashing-based partitioning scheme, w
 Based on the workload and the machine limit, the user can choose to either to have fine-grained partitioning or
 coarse-grained partitioning.
 
-\subsection*{Dynamic Re-Partitioning}
+\subsection{Dynamic Re-Partitioning}
 
 Dynamic re-partitioning are often used in large distributed storage systems for a number of reasons. The main reason is
 to partition the data in such a way so that transactions are run with maximum efficiency. This often leads to the following:
@@ -129,12 +142,12 @@ Partitions are related to each other based on how often they are run together in
 keep an {\em affinity factor} (or {\em AF}) that shows how closely related two partitions are with each other. The {\em AF} are
 increased only at the coordinator of a transaction. The reconfiguration plan is constructed based on the {\em AF} information
 
-\subsection*{Implementation}
+\subsection{Implementation}
 
 Each server keeps track of two tables. The first table is a partition table. The partition table stores mappings of partition number
 to a server address. The partition table also has a single version number. The second table is an {\em AF} table.
 The {\em AF} table keeps a list of pairs of partitions, and a number indicating the relationship between these two partitions.
-Every time a successful commit happens, the coordinator of that transaction increases the \{\em AF} number for each pair of participating
+Every time a successful commit happens, the coordinator of that transaction increases the {\em AF} number for each pair of participating
 partitions. 
 
 There is a server designated as the reconfiguration master. Currently, the master's identity does not change. The master server
@@ -158,18 +171,19 @@ partition table and increases the table's version number. It then changes the re
 
 
 
-\section*{Deadlock detection}
-\subsection*{Background}
+\section{Deadlock detection}
+
+\subsection{Deadlocks}
 A deadlock occurs when two or more process are requesting locks to items being held by other processes. More formally, it can be modeled as a Wait-For-Graph, in which a resource has a directed edge to another resource which holds a lock to an item the first resource requests. If there is a cycle in this graph, a deadlock is present.
 
 In a distributed system, deadlock detection has been the subject of numerous studies because the distributed nature adds some complexity to the system, so certain deadlock detection algorithms might not work in a distributed environment. Distributed deadlock detection can be done with the use of centralized servers which keep track of the state of a distributed system, or they can be performed in a completely distributed manner. One problem that could occur with deadlock detection is that deadlocks might be falsely detected, which can negatively impact a system's performance. Some specific causes of this would be message delays across servers or using stale information in the WFG computed at a central server.
 
-\subsection*{Implementation}
+\subsection{Implementation}
 We decided to implement a fully distributed algorithm, proposed by Chandy, Misra, and Haas. This is an edge-chasing algorithm, which passes probe messages between resources directly. It is based on the AND model of deadlock detection, which implements The main idea is that the origin of the first probe knows that a deadlock is present if that probe message is received by the origin a second time. If a process is also waiting for a lock and receives a probe, it sends the probe message along to any other processes which hold locks to resources it is requesting. It retains the origin in its state so the origin will know that it sent that probe if the probe reappears there.
 
 To implement this, we ran a specific thread for each worker on our distributed database which specifically handles these deadlock probes, independently of the main worker thread for a given transaction. This allows a worker to detect a deadlock while a specific lock is being requested. If a deadlock worker thread detects that a probe message it receives was initiated by itself, then it reports a deadlock to the worker thread and aborts the transaction. Specifically, the deadlock detection thread sets a flag in the worker thread, which then triggers an abort message to be sent by our RPC protocol to the same worker thread.
 
-\subsection*{Test scenario}
+\subsection{Test scenario}
 %[figure - simple probe messages, originating at W1]
 \begin{figure}[h!]
 
@@ -177,23 +191,36 @@ To implement this, we ran a specific thread for each worker on our distributed d
     \includegraphics[scale=0.9]{deadlock-message.png}
   \caption{Probe message being propagated in network. The probe originating at W1 is sent to W2, and W2 sends the probe back to W1. W1 detects a deadlock upon arrival of the probe coming from W2.}
 \end{figure}
+
 We tested the simple case of two workers in separate threads wanting to obtain a lock held by the other concurrently. Suppose a worker W1 holds a lock on A and is attempting to get a lock on B. If a worker is attempting to lock a resource but cannot obtain the lock, a new probe message is sent to every other resource that holds a lock the worker requests. Suppose W2 holds the lock to B and wants the lock to A. If W1 first sends a probe message to W2, then W2 will send a probe message to W1 because W1 holds the lock to A, which W2 wants. W1 will receive this message and note that this message originated there, so it declares a deadlock and aborts itself.
 
-\subsection*{Deadlock detection analysis}
+\subsection{Deadlock detection analysis}
 Our deadlock detection scheme can detect deadlocks fairly efficiently. If there are two deadlocked transactions on two servers, this can be detected by one of the transactions in a time range between 8 and 100 ms. As the number of servers increases, the detection time should scale with the number of deadlocked transactions because only deadlocked servers communicate with each other. Compared to timeout-based methods, this can be quicker and more reliable than setting an upper bound on the time spent trying to acquire a lock. In this case, it might be waiting for a transaction to complete although it's not deadlocked.
 
 The deadlock detector runs in a separate thread, so this can cause a performance overhead. These threads are always running when a transaction is occurring, and the threads are only utilized when a possible deadlock is happening. The number of probes from an origin is no more than the number of edges in the WFG, but there may be more probes from an origin if the deadlocks are not processed in a timely manner. We did not have a specific time requirement for deadlock detection and resolution, so deadlocks might not be resolved immediately if the process obtaining a lock is still running. We set a timeout to stop the process from trying to obtain a lock and to proceed with the abort if there is in fact a detected deadlock.
 
 Further optimizations that could occur but that we did not implement include localized deadlock detection and reduced probe frequency. That is, if the transactions in a WFG reside in the same server, the probing would not need to occur over RPC because the WFG would be local. This could save some RPC communication overhead in the real world, and because our database repartitions data according to how often values are accessed at the same time, this could present an opportunity to implement localized detection. The probe frequency could also be decreased following some optimizations provided by Chandy et al, perhaps by probing at certain time intervals.
 
-\section*{Analysis and Evaluation}
+\section{Analysis and Evaluation}
 
-\subsection*{Reconfiguration Evaluation}
+\subsection{Reconfiguration Evaluation}
 
 Uniform distribution of keys:
 
 20 partitions, 4 threads, 4000 keys; re-partitioning sleeps for 5 seconds; 1200 transactions total
 
+\begin{tabular}{c c c}
+Number of machines & par & Total TPS \\
+\hline
+1 & n/a & 3327.7499051300097 \\
+2 & yes & 38.21019796642812\\
+2 & no & 38.060192839969815\\
+4 & yes & 35.254050893555075\\
+4 & no & 34.04016002821602\\
+6 & yes & 29.402536313413563 \\
+6 & no & 28.96568315101926 \\
+\end{tabular}
+\begin{comment}
 1 machine:
 Total TPS: 3327.7499051300097
 
@@ -212,9 +239,23 @@ no par: Total TPS: 28.96568315101926
 %8 machines:
 %yes par: Total TPS: 24.515095597585976
 %no par: Total TPS: 22.54833324028209
+\end{comment}
+\\
 
 80 partitions, 4 threads, 4000 keys; re-partitioning sleeps for 5 seconds; 1200 transactions total
 
+\begin{tabular}{c c c}
+Number of machines & par & Total TPS \\
+\hline
+2 & yes & 36.99719591919442\\
+2 & no & 36.14329578690912\\
+4 & yes & 34.70860934996866\\
+4 & no & 37.0490862003126\\
+6 & yes & 29.641588176339773\\
+6 & no & 29.91988314667165\\
+\end{tabular}
+
+\begin{comment}
 2 machines:
 yes par: Total Total TPS: 36.99719591919442
 no par: Total TPS: 36.14329578690912
@@ -226,8 +267,21 @@ no par: Total TPS: 37.0490862003126
 6 machines:
 yes par: Total TPS: 29.641588176339773
 no par: Total TPS: 29.91988314667165
+\end{comment}
 
 Smaller key partitioning, 20 partitions, 4 threads, 4000 keys; 5 second sleep, 1200 txns
+
+\begin{tabular}{c c c}
+Number of machines & par & Total TPS \\
+\hline
+2 & yes & 37.47209308960059\\
+2 & no & 37.2844507754791\\
+4 & yes & 35.73265120588351\\
+4 & no & 34.97919960743945\\
+6 & yes & 31.307083786712987\\
+6 & no & 29.435936593733896\\
+\end{tabular}
+\begin{comment}
 2 machines:
 yes par: Total TPS: 37.47209308960059
 no par: Total TPS: 37.2844507754791
@@ -239,9 +293,21 @@ no par: Total TPS: 34.97919960743945
 6 machines:
 yes par: Total TPS: 31.307083786712987
 no par: Total TPS: 29.435936593733896
+\end{comment}
 
 Even smaller key partitioning, 80 partitions, 4 threads, 4000 keys; 5 second sleep, 1200 txns
 
+\begin{tabular}{c c c}
+Number of machines & par & Total TPS \\
+\hline
+6 & no & 27.90082070515909 \\
+6 & yes & 29.441543379468136 \\
+8 & no &  21.972720045990204 \\
+8 & no & 21.619292443193743 \\
+8 & yes &  24.118879651555243 \\
+8 & yes &  22.361452467945956 \\
+\end{tabular}
+\begin{comment}
 6 machines:
 no par: Total TPS: 27.90082070515909
 yes par: Total TPS: 29.441543379468136
@@ -253,21 +319,22 @@ Total TPS: 21.619292443193743
 yes par: 
 Total TPS: 24.118879651555243
 Total TPS: 22.361452467945956
+\end{comment}
 
+\subsection{Discussion}
 
-\subsection*{Discussion}
-
-\section*{Future Work}
+\section{Future Work}
 
 Clearly, this project is just the beginning of a much bigger project. Many questions are still left unanswered. 
 
-Currently, two-phase commit does not have recovery process built into it. This means that the database will not
-endure any kind of 
+Currently, two-phase commit does not have a recovery process built into it. This means that the database will not be able to recover if a failure occurs at any server or across the network. The two-phase commit protocol used in this project could be extended to perform logging to enable fault tolerance.
+
+While the deadlock detection scheme works correctly, it could be optimized to use fewer resources. Some of these optimizations include deadlock detection locally (if all transactions in a particular WFG are on the same server) or lowering the frequency of deadlock probing.
 
 
 
-\section*{Conclusion}
-We implemented a distributed database that supports repartitioning and deadlock detection.
+\section{Conclusion}
+We implemented a distributed database that supports repartitioning and deadlock detection. When repartitioning occurs, the heaviest-weighted partition pairs, weighted by the number of commits occurring between two partitions, are moved to the same server. Deadlock detection is achieved by implementing the 
 
 
 
